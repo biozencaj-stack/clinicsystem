@@ -20,6 +20,13 @@ class Kalendar extends Page
 
     public const PX_PER_MIN = 1.0;
 
+    public const MODES = [
+        'dan' => 'Dan',
+        'nedelja' => 'Nedelja',
+        'mesec' => 'Mesec',
+        'lista' => 'Lista',
+    ];
+
     protected string $view = 'filament.pages.kalendar';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendar;
@@ -32,83 +39,218 @@ class Kalendar extends Page
 
     protected static ?int $navigationSort = 0;
 
-    public int $weekOffset = 0;
+    public string $mode = 'nedelja';
+
+    public string $anchorDate = '';
 
     public ?string $doctorId = null;
 
-    public function previousWeek(): void
+    public function mount(): void
     {
-        $this->weekOffset--;
+        $this->mode = session('kalendar.mode', 'nedelja');
+        $this->anchorDate = today()->toDateString();
     }
 
-    public function nextWeek(): void
+    public function setMode(string $mode): void
     {
-        $this->weekOffset++;
+        if (array_key_exists($mode, self::MODES)) {
+            $this->mode = $mode;
+            session(['kalendar.mode' => $mode]);
+        }
     }
 
-    public function currentWeek(): void
+    public function previous(): void
     {
-        $this->weekOffset = 0;
+        $this->anchorDate = $this->shiftAnchor(-1)->toDateString();
     }
 
-    public function getWeekStart(): Carbon
+    public function next(): void
     {
-        return now()->startOfWeek()->addWeeks($this->weekOffset);
+        $this->anchorDate = $this->shiftAnchor(1)->toDateString();
+    }
+
+    public function today(): void
+    {
+        $this->anchorDate = today()->toDateString();
+    }
+
+    protected function shiftAnchor(int $direction): Carbon
+    {
+        $anchor = Carbon::parse($this->anchorDate);
+
+        return match ($this->mode) {
+            'dan' => $anchor->addDays($direction),
+            'mesec' => $anchor->addMonthsNoOverflow($direction)->startOfMonth(),
+            default => $anchor->addWeeks($direction),
+        };
     }
 
     protected function getViewData(): array
     {
-        $weekStart = $this->getWeekStart();
-        $weekEnd = $weekStart->copy()->endOfWeek();
-        $dayStartMin = self::START_HOUR * 60;
-        $dayEndMin = self::END_HOUR * 60;
+        $anchor = Carbon::parse($this->anchorDate);
+        $doctors = Doctor::where('active', true)->orderBy('name')->get();
 
-        $appointments = Appointment::query()
+        $data = match ($this->mode) {
+            'dan' => $this->dayData($anchor, $doctors),
+            'mesec' => $this->monthData($anchor),
+            'lista' => $this->listData($anchor),
+            default => $this->weekData($anchor),
+        };
+
+        return $data + [
+            'doctors' => $doctors,
+            'statusLabels' => Appointment::STATUSES,
+            'modes' => self::MODES,
+            'hours' => range(self::START_HOUR, self::END_HOUR),
+            'gridHeight' => (self::END_HOUR - self::START_HOUR) * 60 * self::PX_PER_MIN,
+            'nowOffset' => $this->nowOffset(),
+        ];
+    }
+
+    protected function nowOffset(): ?float
+    {
+        $nowMin = now()->hour * 60 + now()->minute;
+        $start = self::START_HOUR * 60;
+
+        return ($nowMin >= $start && $nowMin <= self::END_HOUR * 60)
+            ? ($nowMin - $start) * self::PX_PER_MIN
+            : null;
+    }
+
+    protected function baseQuery()
+    {
+        return Appointment::query()
             ->with(['patient', 'doctor', 'service'])
-            ->whereBetween('starts_at', [$weekStart, $weekEnd])
             ->when($this->doctorId, fn ($q) => $q->where('doctor_id', $this->doctorId))
-            ->orderBy('starts_at')
+            ->orderBy('starts_at');
+    }
+
+    /** Nedelja: 7 kolona dana sa vremenskom osom. */
+    protected function weekData(Carbon $anchor): array
+    {
+        $weekStart = $anchor->copy()->startOfWeek();
+        $weekEnd = $weekStart->copy()->endOfWeek();
+
+        $appointments = $this->baseQuery()
+            ->whereBetween('starts_at', [$weekStart, $weekEnd])
             ->get()
             ->groupBy(fn (Appointment $a) => $a->starts_at->toDateString());
 
-        $days = collect(range(0, 6))->map(function (int $i) use ($weekStart, $appointments, $dayStartMin, $dayEndMin) {
+        $days = collect(range(0, 6))->map(function (int $i) use ($weekStart, $appointments) {
             $date = $weekStart->copy()->addDays($i);
 
             return [
                 'date' => $date,
                 'isToday' => $date->isToday(),
-                'events' => $this->layoutEvents(
-                    $appointments->get($date->toDateString(), collect()),
-                    $dayStartMin,
-                    $dayEndMin,
-                ),
+                'events' => $this->layoutEvents($appointments->get($date->toDateString(), collect())),
             ];
         });
 
-        $nowOffset = null;
-        $nowMin = now()->hour * 60 + now()->minute;
-        if ($nowMin >= $dayStartMin && $nowMin <= $dayEndMin) {
-            $nowOffset = ($nowMin - $dayStartMin) * self::PX_PER_MIN;
-        }
-
         return [
             'days' => $days,
-            'weekStart' => $weekStart,
-            'weekEnd' => $weekEnd,
-            'doctors' => Doctor::where('active', true)->orderBy('name')->get(),
-            'statusLabels' => Appointment::STATUSES,
-            'hours' => range(self::START_HOUR, self::END_HOUR),
-            'gridHeight' => ($dayEndMin - $dayStartMin) * self::PX_PER_MIN,
-            'nowOffset' => $nowOffset,
+            'rangeLabel' => $weekStart->format('d.m.') . ' — ' . $weekEnd->format('d.m.Y.'),
+        ];
+    }
+
+    /** Dan: jedna kolona po doktoru (resursni prikaz). */
+    protected function dayData(Carbon $anchor, Collection $doctors): array
+    {
+        $appointments = $this->baseQuery()
+            ->whereDate('starts_at', $anchor)
+            ->get()
+            ->groupBy('doctor_id');
+
+        $visibleDoctors = $this->doctorId
+            ? $doctors->where('id', (int) $this->doctorId)->values()
+            : $doctors;
+
+        $columns = $visibleDoctors->map(fn (Doctor $d) => [
+            'doctor' => $d,
+            'events' => $this->layoutEvents($appointments->get($d->id, collect())),
+        ]);
+
+        $dayNames = ['ponedeljak', 'utorak', 'sreda', 'četvrtak', 'petak', 'subota', 'nedelja'];
+
+        return [
+            'columns' => $columns,
+            'day' => $anchor,
+            'isToday' => $anchor->isToday(),
+            'rangeLabel' => $dayNames[$anchor->dayOfWeekIso - 1] . ', ' . $anchor->format('d.m.Y.'),
+        ];
+    }
+
+    /** Mesec: mreža nedelja sa kompaktnim terminima. */
+    protected function monthData(Carbon $anchor): array
+    {
+        $monthStart = $anchor->copy()->startOfMonth();
+        $gridStart = $monthStart->copy()->startOfWeek();
+        $gridEnd = $anchor->copy()->endOfMonth()->endOfWeek();
+
+        $appointments = $this->baseQuery()
+            ->whereBetween('starts_at', [$gridStart, $gridEnd])
+            ->get()
+            ->groupBy(fn (Appointment $a) => $a->starts_at->toDateString());
+
+        $weeks = [];
+        $cursor = $gridStart->copy();
+        while ($cursor <= $gridEnd) {
+            $week = [];
+            foreach (range(0, 6) as $i) {
+                $date = $cursor->copy()->addDays($i);
+                $week[] = [
+                    'date' => $date,
+                    'isToday' => $date->isToday(),
+                    'inMonth' => $date->month === $monthStart->month,
+                    'appointments' => $appointments->get($date->toDateString(), collect()),
+                ];
+            }
+            $weeks[] = $week;
+            $cursor->addWeek();
+        }
+
+        $monthNames = ['januar', 'februar', 'mart', 'april', 'maj', 'jun', 'jul', 'avgust', 'septembar', 'oktobar', 'novembar', 'decembar'];
+
+        return [
+            'weeks' => $weeks,
+            'rangeLabel' => $monthNames[$monthStart->month - 1] . ' ' . $monthStart->year . '.',
+        ];
+    }
+
+    /** Lista: hronološki po danima izabrane nedelje. */
+    protected function listData(Carbon $anchor): array
+    {
+        $weekStart = $anchor->copy()->startOfWeek();
+        $weekEnd = $weekStart->copy()->endOfWeek();
+
+        $dayNames = ['ponedeljak', 'utorak', 'sreda', 'četvrtak', 'petak', 'subota', 'nedelja'];
+
+        $groups = $this->baseQuery()
+            ->whereBetween('starts_at', [$weekStart, $weekEnd])
+            ->get()
+            ->groupBy(fn (Appointment $a) => $a->starts_at->toDateString())
+            ->map(fn ($items, $key) => [
+                'date' => Carbon::parse($key),
+                'dayName' => $dayNames[Carbon::parse($key)->dayOfWeekIso - 1],
+                'isToday' => Carbon::parse($key)->isToday(),
+                'appointments' => $items,
+            ])
+            ->values();
+
+        return [
+            'groups' => $groups,
+            'rangeLabel' => $weekStart->format('d.m.') . ' — ' . $weekEnd->format('d.m.Y.'),
         ];
     }
 
     /**
      * Raspoređuje termine u blokove: vertikalno po vremenu, horizontalno u
-     * kolone ("lanes") kada se preklapaju — kao u Google kalendaru.
+     * kolone ("lanes") kada se preklapaju.
      */
-    protected function layoutEvents(Collection $dayAppointments, int $dayStartMin, int $dayEndMin): array
+    protected function layoutEvents(Collection $dayAppointments): array
     {
+        $dayStartMin = self::START_HOUR * 60;
+        $dayEndMin = self::END_HOUR * 60;
+
         $events = $dayAppointments->map(function (Appointment $a) use ($dayStartMin, $dayEndMin) {
             $start = max($a->starts_at->hour * 60 + $a->starts_at->minute, $dayStartMin);
             $ends = $a->ends_at ?? $a->starts_at->copy()->addMinutes(30);
@@ -125,7 +267,6 @@ class Kalendar extends Page
             ];
         })->sortBy('startMin')->values()->all();
 
-        // Grupisanje u klastere međusobno preklopljenih termina.
         $clusters = [];
         $current = [];
         $clusterEnd = -1;
@@ -142,7 +283,6 @@ class Kalendar extends Page
             $clusters[] = $current;
         }
 
-        // Unutar klastera: pohlepno dodeljivanje kolona.
         foreach ($clusters as $cluster) {
             $laneEnds = [];
             foreach ($cluster as $idx) {

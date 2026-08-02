@@ -110,6 +110,21 @@ class AdminPagesTest extends TestCase
         $this->get('/nalaz/nepostojeci-token')->assertNotFound();
     }
 
+    public function test_kalendar_radi_u_sva_cetiri_prikaza(): void
+    {
+        $this->actingAs($this->admin);
+
+        foreach (['dan', 'nedelja', 'mesec', 'lista'] as $mode) {
+            \Livewire\Livewire::test(\App\Filament\Pages\Kalendar::class)
+                ->call('setMode', $mode)
+                ->assertSuccessful()
+                ->call('next')
+                ->assertSuccessful()
+                ->call('today')
+                ->assertSuccessful();
+        }
+    }
+
     public function test_stampa_nalaza_generise_pdf(): void
     {
         $nalaz = Nalaz::whereNotNull('content')->firstOrFail();
