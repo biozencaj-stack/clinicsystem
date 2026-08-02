@@ -9,7 +9,8 @@ class Patient extends Model
 {
     protected $fillable = [
         'first_name', 'last_name', 'jmbg', 'date_of_birth', 'gender', 'phone',
-        'email', 'address', 'whatsapp_opt_in', 'whatsapp_opt_in_at', 'note',
+        'email', 'address', 'whatsapp_opt_in', 'whatsapp_opt_in_at',
+        'viber_opt_in', 'email_opt_in', 'note',
     ];
 
     protected function casts(): array
@@ -18,6 +19,8 @@ class Patient extends Model
             'date_of_birth' => 'date',
             'whatsapp_opt_in' => 'boolean',
             'whatsapp_opt_in_at' => 'datetime',
+            'viber_opt_in' => 'boolean',
+            'email_opt_in' => 'boolean',
         ];
     }
 
@@ -36,9 +39,9 @@ class Patient extends Model
         return $this->hasMany(Nalaz::class)->latest('issued_at');
     }
 
-    public function whatsappMessages(): HasMany
+    public function messages(): HasMany
     {
-        return $this->hasMany(WhatsappMessage::class)->latest();
+        return $this->hasMany(Message::class)->latest();
     }
 
     public function getFullNameAttribute(): string

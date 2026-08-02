@@ -34,6 +34,11 @@ class NalazsTable
                     ->tooltip('Da li je pacijentu poslata WhatsApp poruka da je nalaz spreman'),
             ])
             ->recordActions([
+                Action::make('stampa')
+                    ->label('Štampaj')
+                    ->icon('heroicon-o-printer')
+                    ->url(fn ($record) => route('stampa.nalaz', $record))
+                    ->openUrlInNewTab(),
                 Action::make('link')
                     ->label('Link')
                     ->icon('heroicon-o-link')

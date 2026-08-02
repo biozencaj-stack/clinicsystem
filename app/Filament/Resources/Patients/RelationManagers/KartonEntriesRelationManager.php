@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Patients\RelationManagers;
 
 use App\Models\KartonEntry;
+use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
@@ -83,6 +84,11 @@ class KartonEntriesRelationManager extends RelationManager
                     ->modalHeading('Novi unos u karton'),
             ])
             ->recordActions([
+                Action::make('stampa')
+                    ->label('Štampaj')
+                    ->icon('heroicon-o-printer')
+                    ->url(fn ($record) => route('stampa.izvestaj', $record))
+                    ->openUrlInNewTab(),
                 EditAction::make()
                     ->label('Izmeni')
                     ->modalHeading('Izmena unosa u kartonu'),

@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Patients\Tables;
 
 use Filament\Actions\EditAction;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
@@ -28,9 +27,21 @@ class PatientsTable
                 TextColumn::make('phone')
                     ->label('Telefon')
                     ->searchable(),
-                IconColumn::make('whatsapp_opt_in')
-                    ->label('WhatsApp')
-                    ->boolean(),
+                TextColumn::make('notification_channel')
+                    ->label('Obaveštenja')
+                    ->badge()
+                    ->state(fn ($record) => match (true) {
+                        (bool) $record->whatsapp_opt_in => 'WhatsApp',
+                        (bool) $record->viber_opt_in => 'Viber',
+                        $record->email_opt_in && filled($record->email) => 'E-mail',
+                        default => 'Bez saglasnosti',
+                    })
+                    ->color(fn (string $state) => match ($state) {
+                        'WhatsApp' => 'success',
+                        'Viber' => 'viber',
+                        'E-mail' => 'info',
+                        default => 'gray',
+                    }),
                 TextColumn::make('appointments_count')
                     ->label('Poseta')
                     ->counts('appointments'),

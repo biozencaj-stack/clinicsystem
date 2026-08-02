@@ -49,15 +49,15 @@ class Appointment extends Model
 
         static::created(function (Appointment $a) {
             if (in_array($a->status, ['zakazan', 'potvrdjen'])) {
-                WhatsappMessage::sendConfirmation($a);
-                WhatsappMessage::scheduleReminder($a);
+                Message::sendConfirmation($a);
+                Message::scheduleReminder($a);
             }
         });
 
         static::updated(function (Appointment $a) {
             if ($a->wasChanged('status') && $a->status === 'zakazan' && $a->getOriginal('status') === 'zahtev') {
-                WhatsappMessage::sendConfirmation($a);
-                WhatsappMessage::scheduleReminder($a);
+                Message::sendConfirmation($a);
+                Message::scheduleReminder($a);
             }
         });
     }

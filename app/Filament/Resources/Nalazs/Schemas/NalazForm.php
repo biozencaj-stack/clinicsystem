@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Nalazs\Schemas;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 
@@ -34,6 +35,11 @@ class NalazForm
                     ->label('Datum izdavanja')
                     ->default(now())
                     ->required(),
+                Textarea::make('content')
+                    ->label('Sadržaj nalaza')
+                    ->helperText('Kada je sadržaj unet ovde, dugme „Štampaj“ generiše brendiran PDF sa logom klinike i potpisom doktora.')
+                    ->rows(10)
+                    ->columnSpanFull(),
                 FileUpload::make('file_path')
                     ->label('PDF dokument')
                     ->disk('public')

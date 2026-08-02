@@ -11,7 +11,7 @@ class Nalaz extends Model
     protected $table = 'nalazs';
 
     protected $fillable = [
-        'patient_id', 'doctor_id', 'title', 'file_path', 'issued_at',
+        'patient_id', 'doctor_id', 'title', 'content', 'file_path', 'issued_at',
         'download_token', 'ready_notified_at',
     ];
 
@@ -30,7 +30,7 @@ class Nalaz extends Model
         });
 
         static::created(function (Nalaz $n) {
-            WhatsappMessage::sendNalazReady($n);
+            Message::sendNalazReady($n);
         });
     }
 

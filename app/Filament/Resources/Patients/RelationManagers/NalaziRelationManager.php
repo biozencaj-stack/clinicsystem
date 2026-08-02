@@ -73,6 +73,11 @@ class NalaziRelationManager extends RelationManager
                     ->modalDescription('Čuvanjem nalaza pacijent automatski dobija WhatsApp poruku sa bezbednim linkom za preuzimanje (u demo režimu poruka se samo beleži).'),
             ])
             ->recordActions([
+                Action::make('stampa')
+                    ->label('Štampaj')
+                    ->icon('heroicon-o-printer')
+                    ->url(fn ($record) => route('stampa.nalaz', $record))
+                    ->openUrlInNewTab(),
                 Action::make('link')
                     ->label('Link za preuzimanje')
                     ->icon('heroicon-o-link')

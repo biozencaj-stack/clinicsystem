@@ -5,14 +5,15 @@ namespace Database\Seeders;
 use App\Models\Appointment;
 use App\Models\Doctor;
 use App\Models\KartonEntry;
+use App\Models\Message;
 use App\Models\Nalaz;
 use App\Models\Patient;
 use App\Models\Service;
 use App\Models\User;
-use App\Models\WhatsappMessage;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
@@ -51,52 +52,154 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Ultrazvuk urotrakta', 'category' => 'Urologija', 'duration_minutes' => 25, 'price_rsd' => 6000, 'preparation' => 'Doći sa punom bešikom — 1L vode sat vremena pre pregleda.'],
         ])->map(fn ($s) => Service::create($s));
 
-        $patientData = [
-            ['Petar', 'Marković', 'M', '1968-03-14'], ['Milica', 'Lazić', 'Z', '1985-07-22'],
-            ['Dragan', 'Simić', 'M', '1957-11-02'], ['Jovana', 'Kovačević', 'Z', '1992-01-30'],
-            ['Zoran', 'Pavlović', 'M', '1974-06-18'], ['Katarina', 'Ristić', 'Z', '1988-09-05'],
-            ['Nenad', 'Stojanović', 'M', '1963-04-27'], ['Tamara', 'Obradović', 'Z', '1996-12-11'],
-            ['Vladimir', 'Živković', 'M', '1979-08-08'], ['Sanja', 'Milošević', 'Z', '1982-02-19'],
-            ['Goran', 'Tomić', 'M', '1955-10-25'], ['Teodora', 'Vasić', 'Z', '2000-05-03'],
+        // ————— Pacijenti: 12 osnovnih + 20 sa istorijom poseta —————
+        $firstNamesM = ['Petar', 'Dragan', 'Zoran', 'Nenad', 'Vladimir', 'Goran', 'Miloš', 'Aleksandar', 'Đorđe', 'Lazar', 'Uroš', 'Branislav', 'Slobodan', 'Dejan', 'Igor', 'Nemanja'];
+        $firstNamesZ = ['Milica', 'Jovana', 'Katarina', 'Tamara', 'Sanja', 'Teodora', 'Marija', 'Ivana', 'Dragana', 'Snežana', 'Vesna', 'Ljiljana', 'Bojana', 'Nataša', 'Anđela', 'Emilija'];
+        $lastNames = ['Marković', 'Lazić', 'Simić', 'Kovačević', 'Pavlović', 'Ristić', 'Stojanović', 'Obradović', 'Živković', 'Milošević', 'Tomić', 'Vasić', 'Janković', 'Petković', 'Cvetković', 'Savić', 'Popović', 'Mitrović', 'Stanić', 'Radović', 'Blagojević', 'Đukić', 'Antić', 'Filipović', 'Stevanović', 'Milenković', 'Todorović', 'Aleksić', 'Zdravković', 'Gajić', 'Perić', 'Kostić'];
+
+        $patients = collect();
+        foreach (range(0, 31) as $i) {
+            $isMale = $i % 2 === 0;
+            $first = $isMale ? $firstNamesM[$i % 16] : $firstNamesZ[$i % 16];
+            $last = $lastNames[$i];
+
+            // Kanali obaveštenja: većina WhatsApp, deo Viber, deo e-mail, poneko bez saglasnosti.
+            [$wa, $vb, $em] = match (true) {
+                in_array($i, [5, 9, 14, 21, 27]) => [false, true, false],  // Viber korisnici
+                in_array($i, [2, 17, 24, 30]) => [false, false, true],     // samo e-mail
+                in_array($i, [10, 26]) => [false, false, false],           // bez saglasnosti
+                default => [true, false, false],
+            };
+
+            $patients->push(Patient::create([
+                'first_name' => $first,
+                'last_name' => $last,
+                'gender' => $isMale ? 'M' : 'Z',
+                'date_of_birth' => now()->subYears(25 + ($i * 7) % 50)->subDays($i * 11)->toDateString(),
+                'phone' => '+38164' . str_pad((string) (1000000 + $i * 2741), 7, '0', STR_PAD_LEFT),
+                'email' => Str::ascii(mb_strtolower("{$first}.{$last}")) . '@example.com',
+                'whatsapp_opt_in' => $wa,
+                'whatsapp_opt_in_at' => $wa ? now()->subDays(rand(5, 90)) : null,
+                'viber_opt_in' => $vb,
+                'email_opt_in' => $em,
+            ]));
+        }
+
+        // Parovi specijalnost → [pregled, dodatna usluga] za istoriju poseta.
+        $visitPlans = [
+            'kardiolog' => ['Pregled kardiologa + EKG', 'Ultrazvuk srca (ehokardiografija)', 'Holter pritiska 24h'],
+            'radiolog' => ['Ultrazvuk abdomena', 'MR glave', 'MR lumbalne kičme'],
+            'gastroenterolog' => ['Pregled gastroenterologa', 'Gastroskopija'],
+            'endokrinolog' => ['Pregled endokrinologa', 'Ultrazvuk štitaste žlezde'],
+            'reumatolog' => ['Pregled reumatologa'],
+            'neurolog' => ['Pregled neurologa', 'EMNG (elektromioneurografija)'],
+            'urolog' => ['Pregled urologa', 'Ultrazvuk urotrakta'],
         ];
 
-        $patients = collect($patientData)->map(function ($p, $i) {
-            $optIn = $i !== 10; // jedan pacijent bez saglasnosti, da se vidi razlika
-            return Patient::create([
-                'first_name' => $p[0],
-                'last_name' => $p[1],
-                'gender' => $p[2],
-                'date_of_birth' => $p[3],
-                'phone' => '+3816' . (10000000 + $i * 731 + rand(100, 999)) . rand(0, 9),
-                'whatsapp_opt_in' => $optIn,
-                'whatsapp_opt_in_at' => $optIn ? now()->subDays(rand(5, 60)) : null,
-            ]);
-        });
+        $kartonTemplates = [
+            'kardiolog' => [
+                ['anamneza', 'I10', 'Kontrola krvnog pritiska', 'Pacijent na terapiji, subjektivno bez tegoba. TA u kućnim merenjima 135/85.'],
+                ['pregled', 'I10', 'Kardiološki pregled', 'EKG: sinusni ritam, f ~72/min. Auskultatorno b.o. Nastaviti postojeću terapiju.'],
+                ['kontrola', 'I10', 'Kontrolni pregled', 'Vrednosti pritiska stabilne. Kontrola za 6 meseci sa lipidnim statusom.'],
+            ],
+            'radiolog' => [
+                ['pregled', null, 'Ultrazvučni pregled', 'Jetra homogene ehostrukture, normalne veličine. Žučna kesa bez kalkulusa. Pankreas i slezina b.o.'],
+                ['pregled', 'M54.5', 'MR pregled', 'Degenerativne promene L4-L5 sa protruzijom diska bez kompresije korena. Preporučena fizikalna terapija.'],
+            ],
+            'gastroenterolog' => [
+                ['anamneza', 'K21.0', 'Tegobe sa varenjem', 'Gorušica unazad nekoliko meseci, pojačano posle obroka. Propisana IPP terapija.'],
+                ['kontrola', 'K21.0', 'Kontrola terapije', 'Tegobe značajno smanjene. Nastaviti terapiju još 4 nedelje pa postepeno ukidanje.'],
+            ],
+            'endokrinolog' => [
+                ['anamneza', 'E03.9', 'Kontrola funkcije štitaste žlezde', 'Na supstitucionoj terapiji. TSH u referentnom opsegu. Bez subjektivnih tegoba.'],
+                ['kontrola', 'E11.9', 'Kontrola glikemije', 'HbA1c 6,8% — zadovoljavajuća regulacija. Nastaviti terapiju i režim ishrane.'],
+            ],
+            'reumatolog' => [
+                ['anamneza', 'M15.9', 'Bolovi u zglobovima', 'Jutarnja ukočenost šaka do 30 min. Laboratorija: RF negativan, CRP blago povišen.'],
+                ['kontrola', 'M15.9', 'Kontrolni pregled', 'Tegobe u remisiji uz terapiju. Preporučena kontrola za 3 meseca.'],
+            ],
+            'neurolog' => [
+                ['anamneza', 'G43.9', 'Glavobolje', 'Učestale glavobolje pulsirajućeg karaktera, 3-4x mesečno. Neurološki nalaz uredan.'],
+                ['kontrola', 'G43.9', 'Kontrola terapije', 'Učestalost napada smanjena na 1x mesečno. Nastaviti profilaktičku terapiju.'],
+            ],
+            'urolog' => [
+                ['pregled', 'N40', 'Urološki pregled', 'UZ: prostata blago uvećana. PSA u referentnim vrednostima. Kontrola za godinu dana.'],
+                ['kontrola', 'N20.0', 'Kontrola posle kalkuloze', 'Bez recidiva kalkulusa. Preporučen povećan unos tečnosti.'],
+            ],
+        ];
 
         $svc = fn (string $name) => $services->firstWhere('name', $name);
         $doc = fn (string $spec) => $doctors->firstWhere('specialty', $spec);
+        $specialties = array_keys($visitPlans);
 
-        // Termini — prošla i naredna nedelja; kreiranje automatski generiše WhatsApp poruke.
+        // ————— Istorija: pacijenti 12-31 imaju 2-4 završene posete sa unosima u karton —————
+        foreach ($patients->slice(12) as $i => $patient) {
+            $spec = $specialties[$i % count($specialties)];
+            $doctor = $doc($spec);
+            $visitCount = 2 + ($i % 3); // 2, 3 ili 4 posete
+            $planServices = $visitPlans[$spec];
+            $templates = $kartonTemplates[$spec];
+
+            foreach (range(1, $visitCount) as $v) {
+                $when = now()->subMonths($visitCount - $v + 1)->subDays(($i * 3 + $v * 5) % 20)
+                    ->setTime(9 + (($i + $v) % 8), [0, 15, 30, 45][($i + $v) % 4]);
+                $serviceName = $planServices[($v - 1) % count($planServices)];
+
+                $appointment = Appointment::create([
+                    'patient_id' => $patient->id,
+                    'doctor_id' => $doctor->id,
+                    'service_id' => $svc($serviceName)->id,
+                    'starts_at' => $when,
+                    'status' => 'zavrsen',
+                    'source' => ['recepcija', 'telefon', 'sajt'][($i + $v) % 3],
+                ]);
+
+                $tpl = $templates[($v - 1) % count($templates)];
+                KartonEntry::create([
+                    'patient_id' => $patient->id,
+                    'doctor_id' => $doctor->id,
+                    'appointment_id' => $appointment->id,
+                    'entry_date' => $when->toDateString(),
+                    'type' => $tpl[0],
+                    'diagnosis_code' => $tpl[1],
+                    'title' => $tpl[2],
+                    'content' => $tpl[3],
+                ]);
+            }
+
+            // Svaki treći pacijent sa istorijom ima i zakazanu kontrolu ubuduće.
+            if ($i % 3 === 0) {
+                Appointment::create([
+                    'patient_id' => $patient->id,
+                    'doctor_id' => $doctor->id,
+                    'service_id' => $svc($planServices[0])->id,
+                    'starts_at' => now()->addDays(3 + ($i % 10))->setTime(10 + ($i % 6), 0),
+                    'status' => 'zakazan',
+                    'source' => 'recepcija',
+                ]);
+            }
+        }
+
+        // ————— Termini tekuće nedelje za prvih 12 pacijenata —————
         $schedule = [
-            [$patients[0], 'kardiolog', 'Pregled kardiologa + EKG', now()->subDays(6)->setTime(10, 0), 'zavrsen', 'recepcija'],
-            [$patients[1], 'radiolog', 'MR glave', now()->subDays(4)->setTime(12, 30), 'zavrsen', 'sajt'],
-            [$patients[2], 'urolog', 'Ultrazvuk urotrakta', now()->subDays(2)->setTime(9, 15), 'zavrsen', 'telefon'],
-            [$patients[3], 'endokrinolog', 'Ultrazvuk štitaste žlezde', now()->subDays(1)->setTime(14, 0), 'nije_dosao', 'recepcija'],
-            [$patients[4], 'gastroenterolog', 'Gastroskopija', now()->addDays(1)->setTime(8, 30), 'potvrdjen', 'recepcija'],
-            [$patients[5], 'neurolog', 'Pregled neurologa', now()->addDays(1)->setTime(11, 0), 'zakazan', 'sajt'],
-            [$patients[6], 'radiolog', 'MR lumbalne kičme', now()->addDays(2)->setTime(9, 0), 'zakazan', 'telefon'],
-            [$patients[7], 'kardiolog', 'Ultrazvuk srca (ehokardiografija)', now()->addDays(2)->setTime(13, 30), 'potvrdjen', 'whatsapp'],
-            [$patients[8], 'reumatolog', 'Pregled reumatologa', now()->addDays(3)->setTime(10, 30), 'zakazan', 'recepcija'],
-            [$patients[9], 'radiolog', 'Ultrazvuk abdomena', now()->addDays(4)->setTime(8, 45), 'zakazan', 'sajt'],
-            [$patients[11], 'neurolog', 'EMNG (elektromioneurografija)', now()->addDays(5)->setTime(12, 0), 'zakazan', 'recepcija'],
-            // Zahtevi koji čekaju potvrdu recepcije (badge u navigaciji + dugme "Potvrdi"):
-            [$patients[10], 'urolog', 'Pregled urologa', now()->addDays(3)->setTime(15, 0), 'zahtev', 'sajt'],
-            [$patients[2], 'kardiolog', 'Holter pritiska 24h', now()->addDays(6)->setTime(9, 30), 'zahtev', 'whatsapp'],
+            [0, 'kardiolog', 'Pregled kardiologa + EKG', now()->subDays(6)->setTime(10, 0), 'zavrsen', 'recepcija'],
+            [1, 'radiolog', 'MR glave', now()->subDays(4)->setTime(12, 30), 'zavrsen', 'sajt'],
+            [2, 'urolog', 'Ultrazvuk urotrakta', now()->subDays(2)->setTime(9, 15), 'zavrsen', 'telefon'],
+            [3, 'endokrinolog', 'Ultrazvuk štitaste žlezde', now()->subDays(1)->setTime(14, 0), 'nije_dosao', 'recepcija'],
+            [4, 'gastroenterolog', 'Gastroskopija', now()->addDays(1)->setTime(8, 30), 'potvrdjen', 'recepcija'],
+            [5, 'neurolog', 'Pregled neurologa', now()->addDays(1)->setTime(11, 0), 'zakazan', 'sajt'],
+            [6, 'radiolog', 'MR lumbalne kičme', now()->addDays(2)->setTime(9, 0), 'zakazan', 'telefon'],
+            [7, 'kardiolog', 'Ultrazvuk srca (ehokardiografija)', now()->addDays(2)->setTime(13, 30), 'potvrdjen', 'whatsapp'],
+            [8, 'reumatolog', 'Pregled reumatologa', now()->addDays(3)->setTime(10, 30), 'zakazan', 'recepcija'],
+            [9, 'radiolog', 'Ultrazvuk abdomena', now()->addDays(4)->setTime(8, 45), 'zakazan', 'sajt'],
+            [11, 'neurolog', 'EMNG (elektromioneurografija)', now()->addDays(5)->setTime(12, 0), 'zakazan', 'recepcija'],
+            [10, 'urolog', 'Pregled urologa', now()->addDays(3)->setTime(15, 0), 'zahtev', 'sajt'],
+            [2, 'kardiolog', 'Holter pritiska 24h', now()->addDays(6)->setTime(9, 30), 'zahtev', 'whatsapp'],
         ];
 
-        foreach ($schedule as [$patient, $spec, $serviceName, $when, $status, $source]) {
+        foreach ($schedule as [$pi, $spec, $serviceName, $when, $status, $source]) {
             Appointment::create([
-                'patient_id' => $patient->id,
+                'patient_id' => $patients[$pi]->id,
                 'doctor_id' => $doc($spec)->id,
                 'service_id' => $svc($serviceName)->id,
                 'starts_at' => $when,
@@ -105,20 +208,20 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // Karton — nekoliko realnih unosa sa MKB-10 šiframa.
+        // ————— Karton prvih pacijenata (detaljan primer) —————
         $kartonData = [
-            [$patients[0], 'kardiolog', 'anamneza', null, 'Bol u grudima pri naporu', "Pacijent navodi stezanje u grudima pri penjanju uz stepenice, traje 2-3 minuta, prolazi mirovanjem. Puši 20 cigareta dnevno. Otac imao infarkt u 58. godini."],
-            [$patients[0], 'kardiolog', 'dijagnoza', 'I20.9', 'Angina pectoris', 'EKG: sinusni ritam, bez akutnih ishemijskih promena. Preporučena ergometrija i laboratorija (lipidni status).'],
-            [$patients[0], 'kardiolog', 'terapija', null, 'Uvedena terapija', 'Bisoprolol 2,5 mg 1x1 ujutru. Kontrola za 4 nedelje sa nalazima.'],
-            [$patients[1], 'radiolog', 'pregled', 'G43.9', 'MR glave — migrena', 'MR endokranijuma bez patoloških promena. Nalaz uredan. Preporučena konsultacija neurologa zbog učestalih glavobolja.'],
-            [$patients[2], 'urolog', 'dijagnoza', 'N40', 'Benigna hiperplazija prostate', 'UZ: prostata uvećana, 52 ccm, rezidualni urin 40 ml. PSA u referentnim vrednostima.'],
-            [$patients[3], 'endokrinolog', 'anamneza', 'E03.9', 'Kontrola štitaste žlezde', 'Pacijentkinja na terapiji levotiroksinom 50 mcg. Subjektivno bez tegoba. TSH pre 3 meseca: 2,1.'],
-            [$patients[4], 'gastroenterolog', 'anamneza', 'K21.0', 'GERB — priprema za gastroskopiju', 'Gorušica i regurgitacija unazad 6 meseci, pojačano noću. IPP terapija sa delimičnim efektom. Indikovana gastroskopija.'],
+            [0, 'kardiolog', 'anamneza', null, 'Bol u grudima pri naporu', "Pacijent navodi stezanje u grudima pri penjanju uz stepenice, traje 2-3 minuta, prolazi mirovanjem. Puši 20 cigareta dnevno. Otac imao infarkt u 58. godini."],
+            [0, 'kardiolog', 'dijagnoza', 'I20.9', 'Angina pectoris', 'EKG: sinusni ritam, bez akutnih ishemijskih promena. Preporučena ergometrija i laboratorija (lipidni status).'],
+            [0, 'kardiolog', 'terapija', null, 'Uvedena terapija', 'Bisoprolol 2,5 mg 1x1 ujutru. Kontrola za 4 nedelje sa nalazima.'],
+            [1, 'radiolog', 'pregled', 'G43.9', 'MR glave — migrena', 'MR endokranijuma bez patoloških promena. Nalaz uredan. Preporučena konsultacija neurologa zbog učestalih glavobolja.'],
+            [2, 'urolog', 'dijagnoza', 'N40', 'Benigna hiperplazija prostate', 'UZ: prostata uvećana, 52 ccm, rezidualni urin 40 ml. PSA u referentnim vrednostima.'],
+            [3, 'endokrinolog', 'anamneza', 'E03.9', 'Kontrola štitaste žlezde', 'Pacijentkinja na terapiji levotiroksinom 50 mcg. Subjektivno bez tegoba. TSH pre 3 meseca: 2,1.'],
+            [4, 'gastroenterolog', 'anamneza', 'K21.0', 'GERB — priprema za gastroskopiju', 'Gorušica i regurgitacija unazad 6 meseci, pojačano noću. IPP terapija sa delimičnim efektom. Indikovana gastroskopija.'],
         ];
 
-        foreach ($kartonData as $i => [$patient, $spec, $type, $mkb, $title, $content]) {
+        foreach ($kartonData as $i => [$pi, $spec, $type, $mkb, $title, $content]) {
             KartonEntry::create([
-                'patient_id' => $patient->id,
+                'patient_id' => $patients[$pi]->id,
                 'doctor_id' => $doc($spec)->id,
                 'entry_date' => now()->subDays(6 - $i)->toDateString(),
                 'type' => $type,
@@ -128,29 +231,25 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // Nalazi sa generisanim PDF-om — kreiranje automatski šalje "nalaz je spreman" poruku.
+        // ————— Nalazi sa sadržajem (za brendiranu štampu) — poruka ide automatski —————
         Storage::disk('public')->makeDirectory('nalazi');
         $nalazData = [
-            [$patients[0], 'kardiolog', 'EKG i kardiološki pregled', now()->subDays(5)],
-            [$patients[1], 'radiolog', 'MR glave', now()->subDays(3)],
-            [$patients[2], 'urolog', 'Ultrazvuk urotrakta', now()->subDays(1)],
+            [0, 'kardiolog', 'EKG i kardiološki pregled', now()->subDays(5), "EKG: sinusni ritam, frekvencija 72/min, bez ishemijskih promena.\n\nAuskultacija: srčani tonovi jasni, bez šumova. TA 130/85 mmHg.\n\nZaključak: Nalaz u granicama normale za uzrast. Preporučena ergometrija u sklopu dalje obrade i kontrola za 4 nedelje sa lipidnim statusom."],
+            [1, 'radiolog', 'MR glave', now()->subDays(3), "MR endokranijuma u T1, T2 i FLAIR sekvencama:\n\nMoždani parenhim urednog signala, bez fokalnih lezija. Komorni sistem urednog položaja i širine. Kortikalni sulkusi primereni uzrastu. Paranazalni sinusi uredno pneumatizovani.\n\nZaključak: Uredan MR nalaz endokranijuma."],
+            [2, 'urolog', 'Ultrazvuk urotrakta', now()->subDays(1), "Oba bubrega normalne veličine i položaja, parenhim očuvane širine, bez kalkulusa i dilatacije kanalnog sistema.\n\nMokraćna bešika glatkih zidova. Prostata dijametra 52 ccm, homogene strukture, rezidualni urin 40 ml.\n\nZaključak: Benigno uvećanje prostate. Preporučena kontrola sa PSA za 12 meseci."],
         ];
 
-        foreach ($nalazData as [$patient, $spec, $title, $date]) {
-            $doctor = $doc($spec);
-            $file = 'nalazi/nalaz-' . $patient->id . '-' . $date->format('Ymd') . '.pdf';
-            Storage::disk('public')->put($file, $this->makePdf($title, $patient->full_name, $doctor->full_name, $date->format('d.m.Y.')));
-
+        foreach ($nalazData as [$pi, $spec, $title, $date, $content]) {
             Nalaz::create([
-                'patient_id' => $patient->id,
-                'doctor_id' => $doctor->id,
+                'patient_id' => $patients[$pi]->id,
+                'doctor_id' => $doc($spec)->id,
                 'title' => $title,
-                'file_path' => $file,
+                'content' => $content,
                 'issued_at' => $date->toDateString(),
             ]);
         }
 
-        // Primer AI bot razgovora — kako će izgledati na WhatsApp-u.
+        // ————— Primer AI bot razgovora —————
         $botPatient = $patients[7];
         $conversation = [
             ['in', 'Dobar dan, da li radite subotom i koliko kosta ultrazvuk srca?'],
@@ -162,81 +261,28 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($conversation as $i => [$direction, $body]) {
-            WhatsappMessage::create([
+            Message::create([
                 'patient_id' => $botPatient->id,
                 'direction' => $direction,
+                'channel' => 'whatsapp',
                 'type' => 'bot',
-                'to_phone' => $direction === 'out' ? $botPatient->phone : '+381601234567',
+                'destination' => $direction === 'out' ? $botPatient->phone : '+381601234567',
                 'body' => $body,
                 'status' => 'simulirano',
                 'sent_at' => now()->subHours(3)->addMinutes($i * 2),
             ]);
         }
 
-        // Primer poruke doktoru o izmeni rasporeda (izmene istog dana idu i doktoru).
-        WhatsappMessage::create([
+        // ————— Poruka doktoru o izmeni rasporeda —————
+        Message::create([
             'doctor_id' => $doc('endokrinolog')->id,
             'direction' => 'out',
+            'channel' => 'whatsapp',
             'type' => 'izmena',
-            'to_phone' => $doc('endokrinolog')->phone,
+            'destination' => $doc('endokrinolog')->phone,
             'body' => 'Izmena rasporeda danas: pacijentkinja u 14:00 (UZ štitaste žlezde) je otkazala termin. Sledeći pacijent je u 15:30. — MagnaMed sistem',
             'status' => 'simulirano',
             'sent_at' => now()->subHours(5),
         ]);
-    }
-
-    /**
-     * Minimalan validan PDF za demo nalaze (ASCII sadržaj).
-     */
-    private function makePdf(string $title, string $patient, string $doctor, string $date): string
-    {
-        $tr = fn (string $s) => strtr($s, [
-            'š' => 's', 'đ' => 'dj', 'č' => 'c', 'ć' => 'c', 'ž' => 'z',
-            'Š' => 'S', 'Đ' => 'Dj', 'Č' => 'C', 'Ć' => 'C', 'Ž' => 'Z',
-        ]);
-
-        $lines = [
-            'POLIKLINIKA MAGNAMED — Beograd',
-            '------------------------------------------',
-            'NALAZ: ' . $tr($title),
-            'Pacijent: ' . $tr($patient),
-            'Lekar: ' . $tr($doctor),
-            'Datum: ' . $date,
-            '',
-            'Ovo je demo dokument generisan u probnoj',
-            'verziji internog sistema. U produkciji ovde',
-            'stoji pravi nalaz u PDF formatu.',
-        ];
-
-        $content = "BT\n/F1 11 Tf\n50 780 Td\n14 TL\n";
-        foreach ($lines as $line) {
-            $escaped = str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $line);
-            $content .= "({$escaped}) Tj\nT*\n";
-        }
-        $content .= "ET";
-
-        $objects = [
-            1 => "<< /Type /Catalog /Pages 2 0 R >>",
-            2 => "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-            3 => "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
-            4 => "<< /Length " . strlen($content) . " >>\nstream\n{$content}\nendstream",
-            5 => "<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>",
-        ];
-
-        $pdf = "%PDF-1.4\n";
-        $offsets = [];
-        foreach ($objects as $num => $body) {
-            $offsets[$num] = strlen($pdf);
-            $pdf .= "{$num} 0 obj\n{$body}\nendobj\n";
-        }
-
-        $xrefPos = strlen($pdf);
-        $pdf .= "xref\n0 " . (count($objects) + 1) . "\n0000000000 65535 f \n";
-        foreach ($offsets as $offset) {
-            $pdf .= sprintf("%010d 00000 n \n", $offset);
-        }
-        $pdf .= "trailer\n<< /Size " . (count($objects) + 1) . " /Root 1 0 R >>\nstartxref\n{$xrefPos}\n%%EOF";
-
-        return $pdf;
     }
 }

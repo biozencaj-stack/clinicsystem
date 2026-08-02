@@ -27,13 +27,14 @@ class AdminPagesTest extends TestCase
     {
         return [
             ['/admin'],
+            ['/admin/kalendar'],
             ['/admin/patients'],
             ['/admin/doctors'],
             ['/admin/services'],
             ['/admin/appointments'],
             ['/admin/karton-entries'],
             ['/admin/nalazs'],
-            ['/admin/whatsapp-messages'],
+            ['/admin/messages'],
             ['/admin/patients/create'],
             ['/admin/appointments/create'],
         ];
@@ -60,9 +61,8 @@ class AdminPagesTest extends TestCase
             ->assertSee('Unosi u karton')
             ->assertDontSee('Unosi U Karton');
 
-        $this->actingAs($this->admin)->get('/admin/whatsapp-messages')
-            ->assertSee('WhatsApp poruke')
-            ->assertDontSee('WhatsApp Poruke');
+        $this->actingAs($this->admin)->get('/admin/messages')
+            ->assertSee('Poruke');
 
         $this->actingAs($this->admin)->get('/admin/nalazs/create')
             ->assertSee('Novi nalaz')
@@ -108,5 +108,49 @@ class AdminPagesTest extends TestCase
     public function test_nepostojeci_token_nalaza_vraca_404(): void
     {
         $this->get('/nalaz/nepostojeci-token')->assertNotFound();
+    }
+
+    public function test_stampa_nalaza_generise_pdf(): void
+    {
+        $nalaz = Nalaz::whereNotNull('content')->firstOrFail();
+
+        $this->actingAs($this->admin)
+            ->get("/stampa/nalaz/{$nalaz->id}")
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+    }
+
+    public function test_stampa_izvestaja_generise_pdf(): void
+    {
+        $entry = \App\Models\KartonEntry::firstOrFail();
+
+        $this->actingAs($this->admin)
+            ->get("/stampa/izvestaj/{$entry->id}")
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+    }
+
+    public function test_stampa_zahteva_prijavu(): void
+    {
+        $nalaz = Nalaz::firstOrFail();
+
+        $this->get("/stampa/nalaz/{$nalaz->id}")->assertRedirect();
+    }
+
+    public function test_poruke_se_salju_po_prioritetu_kanala(): void
+    {
+        $this->assertGreaterThan(0, \App\Models\Message::where('channel', 'whatsapp')->count());
+        $this->assertGreaterThan(0, \App\Models\Message::where('channel', 'viber')->count());
+        $this->assertGreaterThan(0, \App\Models\Message::where('channel', 'email')->count());
+    }
+
+    public function test_pacijent_bez_saglasnosti_ne_dobija_poruke(): void
+    {
+        $patient = Patient::where('whatsapp_opt_in', false)
+            ->where('viber_opt_in', false)
+            ->where('email_opt_in', false)
+            ->firstOrFail();
+
+        $this->assertSame(0, $patient->messages()->count());
     }
 }

@@ -5,8 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class WhatsappMessage extends Model
+class Message extends Model
 {
+    public const CHANNELS = [
+        'whatsapp' => 'WhatsApp',
+        'viber' => 'Viber',
+        'email' => 'E-mail',
+    ];
+
     public const TYPES = [
         'potvrda' => 'Potvrda termina',
         'podsetnik' => 'Podsetnik (24h)',
@@ -24,7 +30,7 @@ class WhatsappMessage extends Model
     ];
 
     protected $fillable = [
-        'patient_id', 'doctor_id', 'direction', 'type', 'to_phone',
+        'patient_id', 'doctor_id', 'direction', 'channel', 'type', 'destination',
         'body', 'status', 'scheduled_for', 'sent_at',
     ];
 
@@ -46,17 +52,33 @@ class WhatsappMessage extends Model
         return $this->belongsTo(Doctor::class);
     }
 
+    /**
+     * Kanal po prioritetu: WhatsApp → Viber → e-mail. Null ako nema saglasnosti.
+     *
+     * @return array{0: string, 1: string}|null [kanal, destinacija]
+     */
+    public static function resolveChannel(Patient $patient): ?array
+    {
+        return match (true) {
+            (bool) $patient->whatsapp_opt_in => ['whatsapp', $patient->phone],
+            (bool) $patient->viber_opt_in => ['viber', $patient->phone],
+            $patient->email_opt_in && filled($patient->email) => ['email', $patient->email],
+            default => null,
+        };
+    }
+
     public static function sendConfirmation(Appointment $a): void
     {
         $a->loadMissing(['patient', 'doctor', 'service']);
-        if (! $a->patient?->whatsapp_opt_in) {
+        if (! $a->patient || ! ($route = static::resolveChannel($a->patient))) {
             return;
         }
 
         static::create([
             'patient_id' => $a->patient_id,
+            'channel' => $route[0],
             'type' => 'potvrda',
-            'to_phone' => $a->patient->phone,
+            'destination' => $route[1],
             'body' => "Poštovani/a {$a->patient->full_name}, Vaš termin je zakazan: {$a->service->name}, "
                 . $a->starts_at->format('d.m.Y.') . ' u ' . $a->starts_at->format('H:i')
                 . " kod {$a->doctor->full_name}. Za otkazivanje odgovorite OTKAZUJEM. — Poliklinika MagnaMed",
@@ -68,15 +90,16 @@ class WhatsappMessage extends Model
     public static function scheduleReminder(Appointment $a): void
     {
         $a->loadMissing(['patient', 'doctor', 'service']);
-        if (! $a->patient?->whatsapp_opt_in) {
+        if (! $a->patient || ! ($route = static::resolveChannel($a->patient))) {
             return;
         }
 
         static::create([
             'patient_id' => $a->patient_id,
+            'channel' => $route[0],
             'type' => 'podsetnik',
-            'to_phone' => $a->patient->phone,
-            'body' => "Podsetnik: sutra u " . $a->starts_at->format('H:i')
+            'destination' => $route[1],
+            'body' => 'Podsetnik: sutra u ' . $a->starts_at->format('H:i')
                 . " imate zakazan pregled ({$a->service->name}) kod {$a->doctor->full_name}."
                 . ($a->service->preparation ? " Priprema: {$a->service->preparation}" : '')
                 . ' Molimo odgovorite POTVRĐUJEM ili OTKAZUJEM. — Poliklinika MagnaMed',
@@ -88,14 +111,15 @@ class WhatsappMessage extends Model
     public static function sendNalazReady(Nalaz $n): void
     {
         $n->loadMissing('patient');
-        if (! $n->patient?->whatsapp_opt_in) {
+        if (! $n->patient || ! ($route = static::resolveChannel($n->patient))) {
             return;
         }
 
         static::create([
             'patient_id' => $n->patient_id,
+            'channel' => $route[0],
             'type' => 'nalaz',
-            'to_phone' => $n->patient->phone,
+            'destination' => $route[1],
             'body' => "Poštovani/a {$n->patient->full_name}, Vaš nalaz „{$n->title}“ je spreman. "
                 . "Preuzmite ga bezbedno na: {$n->downloadUrl()} (link važi 7 dana). — Poliklinika MagnaMed",
             'status' => 'simulirano',

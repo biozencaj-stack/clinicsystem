@@ -2,17 +2,17 @@
 
 namespace App\Filament\Resources\Patients\RelationManagers;
 
-use App\Models\WhatsappMessage;
+use App\Models\Message;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
-class WhatsappMessagesRelationManager extends RelationManager
+class MessagesRelationManager extends RelationManager
 {
-    protected static string $relationship = 'whatsappMessages';
+    protected static string $relationship = 'messages';
 
-    protected static ?string $title = 'WhatsApp poruke';
+    protected static ?string $title = 'Poruke';
 
     public function form(Schema $schema): Schema
     {
@@ -30,10 +30,20 @@ class WhatsappMessagesRelationManager extends RelationManager
                     ->label('Vreme')
                     ->dateTime('d.m.Y. H:i')
                     ->sortable(),
+                TextColumn::make('channel')
+                    ->label('Kanal')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state) => Message::CHANNELS[$state] ?? $state)
+                    ->color(fn (string $state) => match ($state) {
+                        'whatsapp' => 'success',
+                        'viber' => 'viber',
+                        'email' => 'info',
+                        default => 'gray',
+                    }),
                 TextColumn::make('type')
                     ->label('Vrsta')
                     ->badge()
-                    ->formatStateUsing(fn (string $state) => WhatsappMessage::TYPES[$state] ?? $state)
+                    ->formatStateUsing(fn (string $state) => Message::TYPES[$state] ?? $state)
                     ->color(fn (string $state) => match ($state) {
                         'potvrda' => 'success',
                         'podsetnik' => 'info',
@@ -43,13 +53,13 @@ class WhatsappMessagesRelationManager extends RelationManager
                     }),
                 TextColumn::make('body')
                     ->label('Poruka')
-                    ->limit(90)
+                    ->limit(80)
                     ->wrap()
                     ->tooltip(fn ($record) => $record->body),
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
-                    ->formatStateUsing(fn (string $state) => WhatsappMessage::STATUSES[$state] ?? $state),
+                    ->formatStateUsing(fn (string $state) => Message::STATUSES[$state] ?? $state),
             ])
             ->headerActions([])
             ->recordActions([])

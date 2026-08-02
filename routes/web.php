@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\Doctor;
+use App\Models\KartonEntry;
 use App\Models\Nalaz;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Route;
 use Spatie\IcalendarGenerator\Components\Calendar;
 use Spatie\IcalendarGenerator\Components\Event;
@@ -42,9 +44,9 @@ Route::get('/kalendar/{token}.ics', function (string $token) {
     ]);
 })->name('doctor.ics');
 
-// Bezbedan link za preuzimanje nalaza — pacijent ga dobija u WhatsApp poruci.
+// Bezbedan link za preuzimanje nalaza — pacijent ga dobija u poruci.
 Route::get('/nalaz/{token}', function (string $token) {
-    $nalaz = Nalaz::where('download_token', $token)->with('patient')->firstOrFail();
+    $nalaz = Nalaz::where('download_token', $token)->with(['patient', 'doctor'])->firstOrFail();
 
     if ($nalaz->file_path && file_exists(storage_path('app/public/' . $nalaz->file_path))) {
         return response()->file(storage_path('app/public/' . $nalaz->file_path), [
@@ -52,5 +54,49 @@ Route::get('/nalaz/{token}', function (string $token) {
         ]);
     }
 
-    abort(404, 'Nalaz nije dostupan.');
+    return Pdf::loadView('pdf.nalaz', [
+        'title' => $nalaz->title,
+        'subtitle' => 'Lekarski nalaz',
+        'patient' => $nalaz->patient,
+        'doctor' => $nalaz->doctor,
+        'date' => $nalaz->issued_at,
+        'content' => $nalaz->content,
+        'docNumber' => 'N-' . str_pad((string) $nalaz->id, 5, '0', STR_PAD_LEFT),
+    ])->stream("nalaz-{$nalaz->id}.pdf");
 })->name('nalaz.download');
+
+// Štampa za osoblje (samo ulogovani) — brendiran PDF sa doktorom u dnu.
+Route::middleware('auth')->group(function () {
+    Route::get('/stampa/nalaz/{nalaz}', function (Nalaz $nalaz) {
+        $nalaz->load(['patient', 'doctor']);
+
+        return Pdf::loadView('pdf.nalaz', [
+            'title' => $nalaz->title,
+            'subtitle' => 'Lekarski nalaz',
+            'patient' => $nalaz->patient,
+            'doctor' => $nalaz->doctor,
+            'date' => $nalaz->issued_at,
+            'content' => $nalaz->content,
+            'docNumber' => 'N-' . str_pad((string) $nalaz->id, 5, '0', STR_PAD_LEFT),
+        ])->stream("nalaz-{$nalaz->id}.pdf");
+    })->name('stampa.nalaz');
+
+    Route::get('/stampa/izvestaj/{kartonEntry}', function (KartonEntry $kartonEntry) {
+        $kartonEntry->load(['patient', 'doctor']);
+
+        $content = $kartonEntry->content;
+        if ($kartonEntry->diagnosis_code) {
+            $content = "Dijagnoza (MKB-10): {$kartonEntry->diagnosis_code}\n\n{$content}";
+        }
+
+        return Pdf::loadView('pdf.nalaz', [
+            'title' => $kartonEntry->title,
+            'subtitle' => 'Izveštaj lekara — ' . (KartonEntry::TYPES[$kartonEntry->type] ?? $kartonEntry->type),
+            'patient' => $kartonEntry->patient,
+            'doctor' => $kartonEntry->doctor,
+            'date' => $kartonEntry->entry_date,
+            'content' => $content,
+            'docNumber' => 'I-' . str_pad((string) $kartonEntry->id, 5, '0', STR_PAD_LEFT),
+        ])->stream("izvestaj-{$kartonEntry->id}.pdf");
+    })->name('stampa.izvestaj');
+});

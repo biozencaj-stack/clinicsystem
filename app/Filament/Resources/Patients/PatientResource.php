@@ -7,7 +7,7 @@ use App\Filament\Resources\Patients\Pages\EditPatient;
 use App\Filament\Resources\Patients\Pages\ListPatients;
 use App\Filament\Resources\Patients\RelationManagers\KartonEntriesRelationManager;
 use App\Filament\Resources\Patients\RelationManagers\NalaziRelationManager;
-use App\Filament\Resources\Patients\RelationManagers\WhatsappMessagesRelationManager;
+use App\Filament\Resources\Patients\RelationManagers\MessagesRelationManager;
 use App\Filament\Resources\Patients\Schemas\PatientForm;
 use App\Filament\Resources\Patients\Tables\PatientsTable;
 use App\Models\Patient;
@@ -51,7 +51,7 @@ class PatientResource extends Resource
         return [
             KartonEntriesRelationManager::class,
             NalaziRelationManager::class,
-            WhatsappMessagesRelationManager::class,
+            MessagesRelationManager::class,
         ];
     }
 

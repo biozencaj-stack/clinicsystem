@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Filament\Resources\WhatsappMessages\Tables;
+namespace App\Filament\Resources\Messages\Tables;
 
-use App\Models\WhatsappMessage;
+use App\Models\Message;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
-class WhatsappMessagesTable
+class MessagesTable
 {
     public static function configure(Table $table): Table
     {
@@ -18,18 +18,29 @@ class WhatsappMessagesTable
                     ->label('Vreme')
                     ->dateTime('d.m.Y. H:i')
                     ->sortable(),
+                TextColumn::make('channel')
+                    ->label('Kanal')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state) => Message::CHANNELS[$state] ?? $state)
+                    ->color(fn (string $state) => match ($state) {
+                        'whatsapp' => 'success',
+                        'viber' => 'viber',
+                        'email' => 'info',
+                        default => 'gray',
+                    }),
                 TextColumn::make('direction')
                     ->label('Smer')
                     ->badge()
                     ->formatStateUsing(fn (string $state) => $state === 'out' ? 'Odlazna' : 'Dolazna')
-                    ->color(fn (string $state) => $state === 'out' ? 'info' : 'success'),
+                    ->color(fn (string $state) => $state === 'out' ? 'info' : 'success')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('patient.full_name')
                     ->label('Pacijent')
                     ->searchable(['first_name', 'last_name']),
                 TextColumn::make('type')
                     ->label('Vrsta')
                     ->badge()
-                    ->formatStateUsing(fn (string $state) => WhatsappMessage::TYPES[$state] ?? $state)
+                    ->formatStateUsing(fn (string $state) => Message::TYPES[$state] ?? $state)
                     ->color(fn (string $state) => match ($state) {
                         'potvrda' => 'success',
                         'podsetnik' => 'info',
@@ -40,13 +51,13 @@ class WhatsappMessagesTable
                     }),
                 TextColumn::make('body')
                     ->label('Poruka')
-                    ->limit(70)
+                    ->limit(60)
                     ->wrap()
                     ->tooltip(fn ($record) => $record->body),
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
-                    ->formatStateUsing(fn (string $state) => WhatsappMessage::STATUSES[$state] ?? $state)
+                    ->formatStateUsing(fn (string $state) => Message::STATUSES[$state] ?? $state)
                     ->color(fn (string $state) => match ($state) {
                         'simulirano' => 'gray',
                         'zakazano' => 'warning',
@@ -55,12 +66,15 @@ class WhatsappMessagesTable
                 TextColumn::make('scheduled_for')
                     ->label('Zakazano za')
                     ->dateTime('d.m.Y. H:i')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                SelectFilter::make('channel')
+                    ->label('Kanal')
+                    ->options(Message::CHANNELS),
                 SelectFilter::make('type')
                     ->label('Vrsta')
-                    ->options(WhatsappMessage::TYPES),
+                    ->options(Message::TYPES),
             ])
             ->recordActions([
                 EditAction::make()->label('Detalji'),

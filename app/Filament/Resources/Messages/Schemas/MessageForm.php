@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Filament\Resources\WhatsappMessages\Schemas;
+namespace App\Filament\Resources\Messages\Schemas;
 
-use App\Models\WhatsappMessage;
+use App\Models\Message;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 
-class WhatsappMessageForm
+class MessageForm
 {
     public static function configure(Schema $schema): Schema
     {
@@ -20,16 +20,20 @@ class WhatsappMessageForm
                     ->relationship('patient', 'last_name')
                     ->getOptionLabelFromRecordUsing(fn ($record) => $record->full_name)
                     ->disabled(),
+                Select::make('channel')
+                    ->label('Kanal')
+                    ->options(Message::CHANNELS)
+                    ->disabled(),
                 Select::make('type')
                     ->label('Vrsta')
-                    ->options(WhatsappMessage::TYPES)
+                    ->options(Message::TYPES)
                     ->disabled(),
-                TextInput::make('to_phone')
-                    ->label('Broj')
+                TextInput::make('destination')
+                    ->label('Primalac (broj / e-mail)')
                     ->disabled(),
                 Select::make('status')
                     ->label('Status')
-                    ->options(WhatsappMessage::STATUSES),
+                    ->options(Message::STATUSES),
                 DateTimePicker::make('scheduled_for')
                     ->label('Zakazano za')
                     ->seconds(false),

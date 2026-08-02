@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\KartonEntries\Tables;
 
 use App\Models\KartonEntry;
+use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -45,6 +46,11 @@ class KartonEntriesTable
                     ->relationship('doctor', 'name'),
             ])
             ->recordActions([
+                Action::make('stampa')
+                    ->label('Štampaj izveštaj')
+                    ->icon('heroicon-o-printer')
+                    ->url(fn ($record) => route('stampa.izvestaj', $record))
+                    ->openUrlInNewTab(),
                 EditAction::make()->label('Izmeni'),
             ])
             ->defaultSort('entry_date', 'desc');
