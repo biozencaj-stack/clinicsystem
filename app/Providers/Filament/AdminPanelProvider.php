@@ -29,6 +29,8 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->brandName('MagnaMed · Interni sistem')
+            ->sidebarWidth('14rem')
+            ->sidebarCollapsibleOnDesktop()
             ->colors([
                 'primary' => Color::Teal,
             ])
