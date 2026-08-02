@@ -78,6 +78,7 @@ class Kalendar extends Page
     {
         $this->anchorDate = today()->toDateString();
         $this->syncPickerToAnchor();
+        $this->dispatch('kalendar-scroll-today');
     }
 
     public function goTo(string $date): void

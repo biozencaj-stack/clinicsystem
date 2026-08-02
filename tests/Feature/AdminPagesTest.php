@@ -137,6 +137,17 @@ class AdminPagesTest extends TestCase
             ->assertSuccessful();
     }
 
+    public function test_danas_vraca_na_danasnji_datum_i_skroluje(): void
+    {
+        $this->actingAs($this->admin);
+
+        \Livewire\Livewire::test(\App\Filament\Pages\Kalendar::class)
+            ->call('next')
+            ->call('today')
+            ->assertSet('anchorDate', today()->toDateString())
+            ->assertDispatched('kalendar-scroll-today');
+    }
+
     public function test_stampa_nalaza_generise_pdf(): void
     {
         $nalaz = Nalaz::whereNotNull('content')->firstOrFail();

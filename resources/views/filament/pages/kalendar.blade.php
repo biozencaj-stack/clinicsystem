@@ -1,4 +1,26 @@
 <x-filament-panels::page>
+    <script>
+        window.gcScrollToday = function (smooth = true) {
+            const target = document.querySelector('.gc-now')
+                || document.querySelector('.gc-today-col')
+                || document.querySelector('.gc-today-cell')
+                || document.querySelector('.gc-today-row')
+                || document.querySelector('.gc-today');
+            if (target) {
+                target.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'center', inline: 'center' });
+            }
+        };
+        if (! window.gcScrollBound) {
+            window.gcScrollBound = true;
+            document.addEventListener('livewire:init', () => {
+                Livewire.on('kalendar-scroll-today', () => {
+                    setTimeout(() => window.gcScrollToday(true), 80);
+                });
+            });
+        }
+    </script>
+    <div x-data x-init="setTimeout(() => window.gcScrollToday(false), 150)"></div>
+
     <style>
         .gc-toolbar {
             display: flex;
