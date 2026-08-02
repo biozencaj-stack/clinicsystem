@@ -63,6 +63,20 @@ class AppointmentsTable
                     ->modalHeading('Potvrda zahteva za termin')
                     ->modalDescription('Potvrdom se pacijentu automatski šalje potvrda njegovim kanalom i zakazuje podsetnik 24h pre termina.')
                     ->action(fn ($record) => $record->update(['status' => 'zakazan'])),
+                Action::make('potvrdi_dolazak')
+                    ->label('Potvrdi dolazak')
+                    ->icon('heroicon-o-hand-thumb-up')
+                    ->color('success')
+                    ->visible(fn ($record) => $record->status === 'zakazan' && ! auth()->user()?->isDoctor())
+                    ->tooltip('Pacijent je potvrdio telefonom — jedan klik i termin je potvrđen.')
+                    ->action(function ($record) {
+                        $record->update(['status' => 'potvrdjen']);
+                        \Filament\Notifications\Notification::make()
+                            ->success()
+                            ->title('Dolazak potvrđen')
+                            ->body($record->patient?->full_name . ' — ' . $record->starts_at->format('d.m.Y. u H:i'))
+                            ->send();
+                    }),
                 Action::make('odbij')
                     ->label('Odbij')
                     ->icon('heroicon-o-x-circle')
