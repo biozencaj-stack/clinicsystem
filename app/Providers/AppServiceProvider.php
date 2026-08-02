@@ -22,5 +22,13 @@ class AppServiceProvider extends ServiceProvider
     {
         // Srpski: bez automatskog "Title Case" — samo prvo slovo veliko.
         Resource::titleCaseModelLabel(false);
+
+        // Filteri i izbor kolona rade odmah po štikliranju — bez dugmeta "Primeni",
+        // panel se zatvara klikom van njega.
+        \Filament\Tables\Table::configureUsing(function (\Filament\Tables\Table $table): void {
+            $table
+                ->deferFilters(false)
+                ->deferColumnManager(false);
+        });
     }
 }

@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Patients\Tables;
 
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 
 class PatientsTable
@@ -62,8 +61,38 @@ class PatientsTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                TernaryFilter::make('whatsapp_opt_in')
-                    ->label('WhatsApp saglasnost'),
+                \Filament\Tables\Filters\SelectFilter::make('kanal')
+                    ->label('Kanal obaveštenja')
+                    ->options([
+                        'whatsapp' => 'WhatsApp',
+                        'viber' => 'Viber',
+                        'email' => 'E-mail',
+                        'nista' => 'Bez saglasnosti',
+                    ])
+                    ->query(fn ($query, array $data) => match ($data['value'] ?? null) {
+                        'whatsapp' => $query->where('whatsapp_opt_in', true),
+                        'viber' => $query->where('whatsapp_opt_in', false)->where('viber_opt_in', true),
+                        'email' => $query->where('whatsapp_opt_in', false)->where('viber_opt_in', false)->where('email_opt_in', true),
+                        'nista' => $query->where('whatsapp_opt_in', false)->where('viber_opt_in', false)->where('email_opt_in', false),
+                        default => $query,
+                    }),
+                \Filament\Tables\Filters\SelectFilter::make('lecen_kod')
+                    ->label('Lečen kod doktora')
+                    ->options(fn () => \App\Models\Doctor::orderBy('name')->pluck('name', 'id')->all())
+                    ->query(fn ($query, array $data) => filled($data['value'] ?? null)
+                        ? $query->whereHas('appointments', fn ($q) => $q->where('doctor_id', $data['value']))
+                        : $query),
+                \Filament\Tables\Filters\SelectFilter::make('gender')
+                    ->label('Pol')
+                    ->options(['M' => 'Muški', 'Z' => 'Ženski']),
+                \Filament\Tables\Filters\Filter::make('sa_nedolascima')
+                    ->label('Sa nedolascima')
+                    ->query(fn ($query) => $query->whereHas('appointments', fn ($q) => $q->where('status', 'nije_dosao'))),
+                \Filament\Tables\Filters\Filter::make('neaktivni')
+                    ->label('Bez posete 12+ meseci')
+                    ->query(fn ($query) => $query->whereDoesntHave('appointments', fn ($q) => $q
+                        ->whereIn('status', ['zavrsen', 'zakazan', 'potvrdjen'])
+                        ->where('starts_at', '>=', now()->subYear()))),
             ])
             ->recordActions([
                 EditAction::make()->label('Karton'),
