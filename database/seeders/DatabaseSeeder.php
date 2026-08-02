@@ -20,8 +20,8 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         User::firstOrCreate(
-            ['email' => 'admin@salus-demo.rs'],
-            ['name' => 'Recepcija Salus', 'password' => Hash::make('salus2026')],
+            ['email' => 'admin@magnamed.rs'],
+            ['name' => 'Recepcija', 'password' => Hash::make('magnamed2026')],
         );
 
         $doctors = collect([
@@ -181,7 +181,7 @@ class DatabaseSeeder extends Seeder
 
         // ————— Doktorski nalog (dr Jelena Stanković se sama uloguje) —————
         User::firstOrCreate(
-            ['email' => 'doktor@salus-demo.rs'],
+            ['email' => 'doktor@magnamed.rs'],
             [
                 'name' => 'dr sci. med. Jelena Stanković',
                 'password' => Hash::make('doktor2026'),
