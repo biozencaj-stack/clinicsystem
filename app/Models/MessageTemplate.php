@@ -30,11 +30,11 @@ class MessageTemplate extends Model
 
     /** Podrazumevani tekstovi kad šablon nije definisan u sistemu. */
     public const DEFAULTS = [
-        'potvrda' => 'Poštovani/a %pacijent_ime%, Vaš termin je zakazan: %usluga%, %datum% u %vreme% kod %doktor%. Za otkazivanje odgovorite OTKAZUJEM. — Poliklinika MagnaMed',
-        'podsetnik' => 'Podsetnik: %datum% u %vreme% imate zakazan pregled (%usluga%) kod %doktor%. %priprema% ✅ Potvrdite dolazak: %potvrdi_link% ❌ Otkažite: %otkazi_link% — Poliklinika MagnaMed',
-        'nalaz' => 'Poštovani/a %pacijent_ime%, Vaš nalaz „%naziv_dokumenta%“ je spreman. Preuzmite ga bezbedno na: %dokument_link% (link važi 7 dana). — Poliklinika MagnaMed',
-        'dokument' => 'Poštovani/a %pacijent_ime%, dokument „%naziv_dokumenta%“ Vam je dostupan za bezbedno preuzimanje na: %dokument_link% (link važi 7 dana). — Poliklinika MagnaMed',
-        'odbijen' => 'Poštovani/a %pacijent_ime%, nažalost traženi termin (%usluga%, %datum% u %vreme%) nije dostupan. Pozovite nas na %telefon_klinike% da zajedno nađemo termin koji Vam odgovara. — Poliklinika MagnaMed',
+        'potvrda' => 'Poštovani/a %pacijent_ime%, Vaš termin je zakazan: %usluga%, %datum% u %vreme% kod %doktor%. Za otkazivanje odgovorite OTKAZUJEM. — Poliklinika Salus',
+        'podsetnik' => 'Podsetnik: %datum% u %vreme% imate zakazan pregled (%usluga%) kod %doktor%. %priprema% ✅ Potvrdite dolazak: %potvrdi_link% ❌ Otkažite: %otkazi_link% — Poliklinika Salus',
+        'nalaz' => 'Poštovani/a %pacijent_ime%, Vaš nalaz „%naziv_dokumenta%“ je spreman. Preuzmite ga bezbedno na: %dokument_link% (link važi 7 dana). — Poliklinika Salus',
+        'dokument' => 'Poštovani/a %pacijent_ime%, dokument „%naziv_dokumenta%“ Vam je dostupan za bezbedno preuzimanje na: %dokument_link% (link važi 7 dana). — Poliklinika Salus',
+        'odbijen' => 'Poštovani/a %pacijent_ime%, nažalost traženi termin (%usluga%, %datum% u %vreme%) nije dostupan. Pozovite nas na %telefon_klinike% da zajedno nađemo termin koji Vam odgovara. — Poliklinika Salus',
     ];
 
     protected $fillable = [

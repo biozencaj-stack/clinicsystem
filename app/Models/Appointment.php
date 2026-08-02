@@ -22,7 +22,7 @@ class Appointment extends Model
 
     public const SOURCES = [
         'recepcija' => 'Recepcija',
-        'sajt' => 'Sajt (magnamed.rs)',
+        'sajt' => 'Sajt klinike',
         'whatsapp' => 'WhatsApp bot',
         'telefon' => 'Telefon',
     ];

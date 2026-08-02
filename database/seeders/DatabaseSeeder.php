@@ -20,8 +20,8 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         User::firstOrCreate(
-            ['email' => 'admin@magnamed.rs'],
-            ['name' => 'Recepcija MagnaMed', 'password' => Hash::make('magnamed2026')],
+            ['email' => 'admin@salus-demo.rs'],
+            ['name' => 'Recepcija Salus', 'password' => Hash::make('salus2026')],
         );
 
         $doctors = collect([
@@ -176,12 +176,12 @@ class DatabaseSeeder extends Seeder
             'name' => 'Podsetnik za gastroskopiju sa dijetom (48h)',
             'service_ids' => [$svc('Gastroskopija')->id],
             'offset_hours' => 48,
-            'body' => 'Poštovani/a %pacijent_ime%, %datum% u %vreme% imate zakazanu gastroskopiju kod %doktor%. VAŽNO: 48h pre pregleda lagana dijeta bez teške hrane; poslednji obrok najkasnije 8h pre pregleda, posle toga strogo ništa. Obavezna pratnja ako je sedacija. ✅ Potvrdite: %potvrdi_link% ❌ Otkažite: %otkazi_link% — Poliklinika MagnaMed',
+            'body' => 'Poštovani/a %pacijent_ime%, %datum% u %vreme% imate zakazanu gastroskopiju kod %doktor%. VAŽNO: 48h pre pregleda lagana dijeta bez teške hrane; poslednji obrok najkasnije 8h pre pregleda, posle toga strogo ništa. Obavezna pratnja ako je sedacija. ✅ Potvrdite: %potvrdi_link% ❌ Otkažite: %otkazi_link% — Poliklinika Salus',
         ]);
 
         // ————— Doktorski nalog (dr Jelena Stanković se sama uloguje) —————
         User::firstOrCreate(
-            ['email' => 'doktor@magnamed.rs'],
+            ['email' => 'doktor@salus-demo.rs'],
             [
                 'name' => 'dr sci. med. Jelena Stanković',
                 'password' => Hash::make('doktor2026'),
@@ -324,7 +324,7 @@ class DatabaseSeeder extends Seeder
         $botPatient = $patients[7];
         $conversation = [
             ['in', 'Dobar dan, da li radite subotom i koliko kosta ultrazvuk srca?'],
-            ['out', 'Dobar dan! 😊 Da, poliklinika MagnaMed radi subotom od 10 do 17h. Ultrazvuk srca (ehokardiografija) košta 9.000 RSD i traje oko 30 minuta. Da li želite da zakažete termin?'],
+            ['out', 'Dobar dan! 😊 Da, poliklinika Salus radi subotom od 10 do 17h. Ultrazvuk srca (ehokardiografija) košta 9.000 RSD i traje oko 30 minuta. Da li želite da zakažete termin?'],
             ['in', 'Moze subota pre podne ako ima'],
             ['out', 'Proverila sam raspored — kod dr sci. med. Jelene Stanković (kardiolog) slobodno je u subotu u 10:30 ili 11:30. Koji termin Vam odgovara?'],
             ['in', '10:30'],
@@ -351,7 +351,7 @@ class DatabaseSeeder extends Seeder
             'channel' => 'whatsapp',
             'type' => 'izmena',
             'destination' => $doc('endokrinolog')->phone,
-            'body' => 'Izmena rasporeda danas: pacijentkinja u 14:00 (UZ štitaste žlezde) je otkazala termin. Sledeći pacijent je u 15:30. — MagnaMed sistem',
+            'body' => 'Izmena rasporeda danas: pacijentkinja u 14:00 (UZ štitaste žlezde) je otkazala termin. Sledeći pacijent je u 15:30. — interni sistem klinike',
             'status' => 'simulirano',
             'sent_at' => now()->subHours(5),
         ]);

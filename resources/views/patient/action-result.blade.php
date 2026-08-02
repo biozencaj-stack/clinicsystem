@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $title }} — Poliklinika MagnaMed</title>
+    <title>{{ $title }} — Poliklinika Salus</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -42,7 +42,7 @@
 </head>
 <body>
     <div class="card">
-        <div class="logo">MagnaMed</div>
+        <div class="logo">Poliklinika Salus</div>
         <div class="icon">{{ $icon }}</div>
         <h1>{{ $title }}</h1>
         <p>{{ $message }}</p>

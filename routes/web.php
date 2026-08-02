@@ -27,20 +27,20 @@ Route::get('/kalendar/{token}.ics', function (string $token) {
 
             return Event::create()
                 ->name("{$a->service?->name} — {$patient}")
-                ->description('Detalji u internom sistemu MagnaMed.')
-                ->uniqueIdentifier("magnamed-appointment-{$a->id}")
+                ->description('Detalji u internom sistemu klinike.')
+                ->uniqueIdentifier("medipuls-appointment-{$a->id}")
                 ->startsAt($a->starts_at)
                 ->endsAt($a->ends_at ?? $a->starts_at->copy()->addMinutes(30));
         })
         ->all();
 
-    $calendar = Calendar::create("MagnaMed — {$doctor->full_name}")
+    $calendar = Calendar::create("Salus — {$doctor->full_name}")
         ->refreshInterval(15)
         ->event($events);
 
     return response($calendar->get(), 200, [
         'Content-Type' => 'text/calendar; charset=utf-8',
-        'Content-Disposition' => 'inline; filename="magnamed.ics"',
+        'Content-Disposition' => 'inline; filename="salus.ics"',
     ]);
 })->name('doctor.ics');
 

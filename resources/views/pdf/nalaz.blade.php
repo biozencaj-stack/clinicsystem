@@ -32,15 +32,15 @@
         <tr>
             <td>
                 @if (file_exists(public_path('images/logo.png')))
-                    <span class="logo"><img src="{{ public_path('images/logo.png') }}" alt="MagnaMed"></span>
+                    <span class="logo"><img src="{{ public_path('images/logo.png') }}" alt="Salus"></span>
                 @else
-                    <span class="logo">MagnaMed</span>
+                    <span class="logo">Poliklinika Salus</span>
                 @endif
             </td>
             <td class="clinic-info">
-                Poliklinika MagnaMed<br>
-                Beograd &middot; magnamed.rs<br>
-                Telefon: +381 66 123 456 &middot; office@magnamed.rs
+                Poliklinika Salus<br>
+                Beograd &middot; salus-demo.rs<br>
+                Telefon: +381 66 123 456 &middot; office@salus-demo.rs
             </td>
         </tr>
     </table>
@@ -73,7 +73,7 @@
 
     <table class="footer">
         <tr>
-            <td class="print-date">Dokument generisan {{ now()->format('d.m.Y. u H:i') }} iz internog sistema poliklinike MagnaMed.</td>
+            <td class="print-date">Dokument generisan {{ now()->format('d.m.Y. u H:i') }} iz internog sistema poliklinike Salus.</td>
             <td class="sig">
                 <div class="line">
                     @if ($doctor)
@@ -87,6 +87,6 @@
         </tr>
     </table>
 
-    <div class="disclaimer">Ovaj dokument je medicinska dokumentacija poliklinike MagnaMed i namenjen je isključivo pacijentu na koga se odnosi.</div>
+    <div class="disclaimer">Ovaj dokument je medicinska dokumentacija poliklinike Salus i namenjen je isključivo pacijentu na koga se odnosi.</div>
 </body>
 </html>

@@ -20,7 +20,7 @@ class AdminPagesTest extends TestCase
     {
         parent::setUp();
         $this->seed();
-        $this->admin = User::where('email', 'admin@magnamed.rs')->firstOrFail();
+        $this->admin = User::where('email', 'admin@salus-demo.rs')->firstOrFail();
     }
 
     public static function adminPages(): array

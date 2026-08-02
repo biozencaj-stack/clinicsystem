@@ -21,7 +21,7 @@ class DoctorAccountTest extends TestCase
     {
         parent::setUp();
         $this->seed();
-        $this->doctorUser = User::where('email', 'doktor@magnamed.rs')->firstOrFail();
+        $this->doctorUser = User::where('email', 'doktor@salus-demo.rs')->firstOrFail();
     }
 
     public function test_doktor_ne_vidi_administrativne_module(): void
@@ -119,7 +119,7 @@ class DoctorAccountTest extends TestCase
 
     public function test_recepcija_i_dalje_vidi_sve(): void
     {
-        $admin = User::where('email', 'admin@magnamed.rs')->firstOrFail();
+        $admin = User::where('email', 'admin@salus-demo.rs')->firstOrFail();
         $this->actingAs($admin);
 
         $this->get('/admin/patients')->assertOk();
