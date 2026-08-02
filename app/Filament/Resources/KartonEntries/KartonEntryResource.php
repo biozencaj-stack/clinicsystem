@@ -31,6 +31,30 @@ class KartonEntryResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['title', 'diagnosis_code', 'patient.first_name', 'patient.last_name'];
+    }
+
+    public static function getGlobalSearchResultTitle(\Illuminate\Database\Eloquent\Model $record): string
+    {
+        return $record->title;
+    }
+
+    public static function getGlobalSearchResultDetails(\Illuminate\Database\Eloquent\Model $record): array
+    {
+        return array_filter([
+            'Pacijent' => $record->patient?->full_name,
+            'Datum' => $record->entry_date?->format('d.m.Y.'),
+            'MKB-10' => $record->diagnosis_code,
+        ]);
+    }
+
+    public static function getGlobalSearchEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getGlobalSearchEloquentQuery()->with(['patient']);
+    }
+
     /** Doktor u globalnoj listi vidi unose koje je sam napisao. */
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {

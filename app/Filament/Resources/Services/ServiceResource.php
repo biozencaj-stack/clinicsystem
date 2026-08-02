@@ -38,6 +38,20 @@ class ServiceResource extends Resource
         return ! auth()->user()?->isDoctor();
     }
 
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['name', 'category'];
+    }
+
+    public static function getGlobalSearchResultDetails(\Illuminate\Database\Eloquent\Model $record): array
+    {
+        return array_filter([
+            'Oblast' => $record->category,
+            'Trajanje' => $record->duration_minutes . ' min',
+            'Cena' => $record->price_rsd ? number_format($record->price_rsd, 0, ',', '.') . ' RSD' : null,
+        ]);
+    }
+
     public static function form(Schema $schema): Schema
     {
         return ServiceForm::configure($schema);

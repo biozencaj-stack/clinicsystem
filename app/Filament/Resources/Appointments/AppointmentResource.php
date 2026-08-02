@@ -31,6 +31,30 @@ class AppointmentResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['patient.first_name', 'patient.last_name', 'doctor.name', 'service.name'];
+    }
+
+    public static function getGlobalSearchResultTitle(\Illuminate\Database\Eloquent\Model $record): string
+    {
+        return ($record->patient?->full_name ?? 'Termin') . ' — ' . $record->starts_at->format('d.m.Y. H:i');
+    }
+
+    public static function getGlobalSearchResultDetails(\Illuminate\Database\Eloquent\Model $record): array
+    {
+        return array_filter([
+            'Usluga' => $record->service?->name,
+            'Doktor' => $record->doctor?->full_name,
+            'Status' => \App\Models\Appointment::STATUSES[$record->status] ?? $record->status,
+        ]);
+    }
+
+    public static function getGlobalSearchEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getGlobalSearchEloquentQuery()->with(['patient', 'doctor', 'service']);
+    }
+
     /** Doktor vidi samo svoje termine, bez izmena. */
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {

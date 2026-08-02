@@ -56,6 +56,21 @@ class DoctorResource extends Resource
         return ! auth()->user()?->isDoctor();
     }
 
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['name', 'specialty'];
+    }
+
+    public static function getGlobalSearchResultTitle(\Illuminate\Database\Eloquent\Model $record): string
+    {
+        return $record->full_name;
+    }
+
+    public static function getGlobalSearchResultDetails(\Illuminate\Database\Eloquent\Model $record): array
+    {
+        return ['Specijalnost' => $record->specialty];
+    }
+
     public static function getPages(): array
     {
         return [

@@ -117,6 +117,40 @@ class DoctorAccountTest extends TestCase
         $this->assertSame($this->doctorUser->doctor_id, $absence->doctor_id);
     }
 
+    public function test_globalna_pretraga_radi_i_postuje_doktorski_pristup(): void
+    {
+        $admin = User::where('email', 'admin@magnamed.rs')->firstOrFail();
+
+        // Recepcija: pretraga nalazi pacijente po prezimenu i telefonu.
+        $this->actingAs($admin);
+        $patient = \App\Models\Patient::firstOrFail();
+
+        $byName = \App\Filament\Resources\Patients\PatientResource::getGlobalSearchResults($patient->last_name);
+        $this->assertTrue($byName->contains(fn ($r) => str_contains($r->title, $patient->last_name)));
+
+        $byPhone = \App\Filament\Resources\Patients\PatientResource::getGlobalSearchResults(substr($patient->phone, -6));
+        $this->assertNotEmpty($byPhone);
+
+        // Termini se pretražuju po imenu pacijenta.
+        $appointments = \App\Filament\Resources\Appointments\AppointmentResource::getGlobalSearchResults($patient->last_name);
+        $this->assertNotEmpty($appointments);
+
+        // Doktor: pretraga vraća samo pacijente koje je lečio.
+        $this->actingAs($this->doctorUser);
+        $doctorId = $this->doctorUser->doctor_id;
+
+        $tudji = \App\Models\Patient::whereDoesntHave('appointments', fn ($q) => $q->where('doctor_id', $doctorId))
+            ->whereDoesntHave('kartonEntries', fn ($q) => $q->where('doctor_id', $doctorId))
+            ->whereDoesntHave('nalazi', fn ($q) => $q->where('doctor_id', $doctorId))
+            ->firstOrFail();
+
+        $results = \App\Filament\Resources\Patients\PatientResource::getGlobalSearchResults($tudji->last_name);
+        $this->assertFalse(
+            $results->contains(fn ($r) => str_contains($r->title, $tudji->full_name)),
+            'Doktor u pretrazi ne sme videti tuđe pacijente'
+        );
+    }
+
     public function test_recepcija_i_dalje_vidi_sve(): void
     {
         $admin = User::where('email', 'admin@magnamed.rs')->firstOrFail();

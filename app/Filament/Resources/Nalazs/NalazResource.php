@@ -33,6 +33,25 @@ class NalazResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'title';
 
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['title', 'patient.first_name', 'patient.last_name'];
+    }
+
+    public static function getGlobalSearchResultDetails(\Illuminate\Database\Eloquent\Model $record): array
+    {
+        return array_filter([
+            'Pacijent' => $record->patient?->full_name,
+            'Datum' => $record->issued_at?->format('d.m.Y.'),
+            'Doktor' => $record->doctor?->full_name,
+        ]);
+    }
+
+    public static function getGlobalSearchEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getGlobalSearchEloquentQuery()->with(['patient', 'doctor']);
+    }
+
     /** Doktor u globalnoj listi vidi nalaze koje je sam izdao. */
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
