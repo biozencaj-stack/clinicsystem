@@ -253,6 +253,24 @@
         .gc-chip.gc-zavrsen { opacity: .55; }
         .gc-more { font-size: .63rem; color: #6B7280; padding-left: .35rem; }
         .dark .gc-more { color: #9CA3AF; }
+        .gc-more-btn {
+            display: block;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            color: #0E6E6B;
+            font-weight: 600;
+            padding: .15rem .35rem;
+            border-radius: .3rem;
+            text-align: left;
+        }
+        .gc-more-btn:hover { background: #E3F0EE; text-decoration: underline; }
+        .dark .gc-more-btn { color: #53B3AB; }
+        .dark .gc-more-btn:hover { background: #253345; }
+        .gc-month-date-btn { border: none; background: transparent; cursor: pointer; }
+        .gc-month-date-btn:hover { background: #E3F0EE; }
+        .dark .gc-month-date-btn:hover { background: #253345; }
+        .gc-today-cell .gc-month-date-btn:hover { background: #0B5754; }
 
         /* Lista */
         .gc-list { display: flex; flex-direction: column; }
@@ -701,7 +719,11 @@
                                 'gc-out' => ! $cell['inMonth'],
                                 'gc-today-cell' => $cell['isToday'],
                             ])>
-                                <span class="gc-month-date">{{ $cell['date']->format('j') }}</span>
+                                <button type="button" class="gc-month-date gc-month-date-btn"
+                                        wire:click="openDay('{{ $cell['date']->toDateString() }}')"
+                                        title="Otvori dan {{ $cell['date']->format('d.m.Y.') }}">
+                                    {{ $cell['date']->format('j') }}
+                                </button>
                                 @foreach ($cell['appointments']->take(3) as $a)
                                     <a href="{{ route('filament.admin.resources.appointments.edit', $a) }}"
                                        @class(['gc-chip', 'gc-' . $a->status])
@@ -711,7 +733,10 @@
                                     </a>
                                 @endforeach
                                 @if ($cell['appointments']->count() > 3)
-                                    <span class="gc-more">+ još {{ $cell['appointments']->count() - 3 }}</span>
+                                    <button type="button" class="gc-more gc-more-btn"
+                                            wire:click="openDay('{{ $cell['date']->toDateString() }}')">
+                                        + još {{ $cell['appointments']->count() - 3 }} — prikaži dan
+                                    </button>
                                 @endif
                             </div>
                         @endforeach

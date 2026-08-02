@@ -125,6 +125,20 @@ class AdminPagesTest extends TestCase
         }
     }
 
+    public function test_klik_na_jos_u_mesecu_otvara_dan_prikaz(): void
+    {
+        $this->actingAs($this->admin);
+
+        $target = now()->addDays(5)->toDateString();
+
+        \Livewire\Livewire::test(\App\Filament\Pages\Kalendar::class)
+            ->call('setMode', 'mesec')
+            ->call('openDay', $target)
+            ->assertSet('mode', 'dan')
+            ->assertSet('anchorDate', $target)
+            ->assertSuccessful();
+    }
+
     public function test_mini_kalendar_bira_datum(): void
     {
         $this->actingAs($this->admin);

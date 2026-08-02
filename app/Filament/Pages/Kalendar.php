@@ -115,6 +115,13 @@ class Kalendar extends Page
         $this->syncPickerToAnchor();
     }
 
+    /** Iz mesečnog prikaza: otvori Dan prikaz za izabrani datum. */
+    public function openDay(string $date): void
+    {
+        $this->goTo($date);
+        $this->setMode('dan');
+    }
+
     public function pickerPrev(): void
     {
         $this->pickerMonth = Carbon::parse($this->pickerMonth)->subMonthNoOverflow()->startOfMonth()->toDateString();
