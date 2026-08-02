@@ -25,8 +25,8 @@ class SchedulingEngineTest extends TestCase
         parent::setUp();
         $this->seed();
         $this->availability = app(AvailabilityService::class);
-        // Ponedeljak dovoljno daleko da seedovani termini ne smetaju.
-        $this->monday = today()->addWeeks(4)->startOfWeek();
+        // Ponedeljak posle 60-dnevnog demo popunjavanja kalendara — prazan dan.
+        $this->monday = today()->addWeeks(10)->startOfWeek();
     }
 
     public function test_radiolog_mr_pocinje_od_8_a_ostale_usluge_od_11(): void
@@ -203,13 +203,9 @@ class SchedulingEngineTest extends TestCase
 
         $reminder = \App\Models\Message::where('patient_id', $appointment->patient_id)
             ->where('type', 'podsetnik')
-            ->latest('id')
+            ->where('scheduled_for', $appointment->starts_at->copy()->subHours(48))
             ->firstOrFail();
 
-        $this->assertSame(
-            $appointment->starts_at->copy()->subHours(48)->toDateTimeString(),
-            $reminder->scheduled_for->toDateTimeString(),
-        );
         $this->assertStringContainsString('dijeta', $reminder->body);
     }
 
