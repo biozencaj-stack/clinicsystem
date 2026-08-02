@@ -125,6 +125,18 @@ class AdminPagesTest extends TestCase
         }
     }
 
+    public function test_mini_kalendar_bira_datum(): void
+    {
+        $this->actingAs($this->admin);
+
+        \Livewire\Livewire::test(\App\Filament\Pages\Kalendar::class)
+            ->call('pickerNext')
+            ->assertSuccessful()
+            ->call('goTo', now()->addMonth()->startOfMonth()->toDateString())
+            ->assertSet('anchorDate', now()->addMonth()->startOfMonth()->toDateString())
+            ->assertSuccessful();
+    }
+
     public function test_stampa_nalaza_generise_pdf(): void
     {
         $nalaz = Nalaz::whereNotNull('content')->firstOrFail();

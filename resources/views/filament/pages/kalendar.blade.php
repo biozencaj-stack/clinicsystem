@@ -275,6 +275,96 @@
         .st-zavrsen { background: #F3F4F6; color: #6B7280; }
         .st-otkazan, .st-nije_dosao { background: #FEE2E2; color: #991B1B; }
 
+        /* Mini kalendar (popover za izbor datuma) */
+        [x-cloak] { display: none !important; }
+        .gc-picker-wrap { position: relative; display: inline-block; }
+        .gc-range-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: .25rem .5rem;
+            border-radius: .5rem;
+        }
+        .gc-range-btn:hover { background: #F3F4F6; }
+        .dark .gc-range-btn:hover { background: #1F2937; }
+        .gc-range-caret { width: .85rem; height: .85rem; color: #9CA3AF; }
+        .gc-picker {
+            position: absolute;
+            top: calc(100% + .4rem);
+            left: 0;
+            z-index: 50;
+            width: 17rem;
+            background: #fff;
+            border: 1px solid #E5E7EB;
+            border-radius: .75rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, .12);
+            padding: .75rem;
+        }
+        .dark .gc-picker { background: #1F2937; border-color: #374151; box-shadow: 0 10px 25px rgba(0, 0, 0, .45); }
+        .gc-picker-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem; }
+        .gc-picker-title { font-size: .85rem; font-weight: 600; color: #1F2937; text-transform: capitalize; }
+        .dark .gc-picker-title { color: #F3F4F6; }
+        .gc-picker-nav {
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            padding: .3rem .5rem;
+            border-radius: .4rem;
+            color: #6B7280;
+            font-size: .85rem;
+            line-height: 1;
+        }
+        .gc-picker-nav:hover { background: #F3F4F6; color: #111827; }
+        .dark .gc-picker-nav:hover { background: #374151; color: #F9FAFB; }
+        .gc-picker-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: .1rem; }
+        .gc-picker-dayname {
+            text-align: center;
+            font-size: .6rem;
+            text-transform: uppercase;
+            color: #9CA3AF;
+            padding: .2rem 0;
+        }
+        .gc-picker-day {
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            width: 2.1rem;
+            height: 2.1rem;
+            border-radius: 999px;
+            font-size: .75rem;
+            color: #1F2937;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .dark .gc-picker-day { color: #E5E7EB; }
+        .gc-picker-day:hover { background: #F3F4F6; }
+        .dark .gc-picker-day:hover { background: #374151; }
+        .gc-picker-day.out { color: #C4CBD1; }
+        .dark .gc-picker-day.out { color: #4B5563; }
+        .gc-picker-day.today { box-shadow: inset 0 0 0 1.5px #0E6E6B; font-weight: 700; }
+        .dark .gc-picker-day.today { box-shadow: inset 0 0 0 1.5px #53B3AB; }
+        .gc-picker-day.selected { background: #0E6E6B; color: #fff; font-weight: 700; }
+        .dark .gc-picker-day.selected { background: #53B3AB; color: #062A28; }
+        .gc-picker-foot { display: flex; justify-content: flex-end; margin-top: .5rem; }
+        .gc-picker-today-btn {
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: .75rem;
+            font-weight: 600;
+            color: #0E6E6B;
+            padding: .3rem .6rem;
+            border-radius: .4rem;
+        }
+        .gc-picker-today-btn:hover { background: #E3F0EE; }
+        .dark .gc-picker-today-btn { color: #53B3AB; }
+        .dark .gc-picker-today-btn:hover { background: #253345; }
+
         .gc-legend { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: .5rem; }
         .gc-legend-item { display: flex; align-items: center; gap: .35rem; font-size: .72rem; color: #6B7280; }
         .dark .gc-legend-item { color: #9CA3AF; }
@@ -290,7 +380,51 @@
                 Danas
             </x-filament::button>
             <x-filament::icon-button color="gray" wire:click="next" icon="heroicon-o-chevron-right" label="Sledeći period" />
-            <span class="gc-range">{{ $rangeLabel }}</span>
+
+            <div class="gc-picker-wrap" x-data="{ pickerOpen: false }">
+                <button type="button" class="gc-range-btn" @click="pickerOpen = ! pickerOpen">
+                    <span class="gc-range" style="margin-left: 0">{{ $rangeLabel }}</span>
+                    <svg class="gc-range-caret" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+
+                <div class="gc-picker" x-show="pickerOpen" x-cloak @click.outside="pickerOpen = false">
+                    <div class="gc-picker-head">
+                        <button type="button" class="gc-picker-nav" wire:click="pickerPrev">‹</button>
+                        <span class="gc-picker-title">{{ $picker['label'] }}</span>
+                        <button type="button" class="gc-picker-nav" wire:click="pickerNext">›</button>
+                    </div>
+
+                    <div class="gc-picker-grid">
+                        @foreach (['P', 'U', 'S', 'Č', 'P', 'S', 'N'] as $dn)
+                            <span class="gc-picker-dayname">{{ $dn }}</span>
+                        @endforeach
+
+                        @foreach ($picker['weeks'] as $week)
+                            @foreach ($week as $cell)
+                                <button type="button"
+                                        @class([
+                                            'gc-picker-day',
+                                            'out' => ! $cell['inMonth'],
+                                            'today' => $cell['isToday'],
+                                            'selected' => $cell['isAnchor'],
+                                        ])
+                                        wire:click="goTo('{{ $cell['date'] }}')"
+                                        @click="pickerOpen = false">
+                                    {{ $cell['day'] }}
+                                </button>
+                            @endforeach
+                        @endforeach
+                    </div>
+
+                    <div class="gc-picker-foot">
+                        <button type="button" class="gc-picker-today-btn" wire:click="today" @click="pickerOpen = false">
+                            Danas
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="gc-toolbar-right">

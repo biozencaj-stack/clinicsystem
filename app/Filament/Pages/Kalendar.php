@@ -43,12 +43,15 @@ class Kalendar extends Page
 
     public string $anchorDate = '';
 
+    public string $pickerMonth = '';
+
     public ?string $doctorId = null;
 
     public function mount(): void
     {
         $this->mode = session('kalendar.mode', 'nedelja');
         $this->anchorDate = today()->toDateString();
+        $this->pickerMonth = today()->startOfMonth()->toDateString();
     }
 
     public function setMode(string $mode): void
@@ -62,16 +65,74 @@ class Kalendar extends Page
     public function previous(): void
     {
         $this->anchorDate = $this->shiftAnchor(-1)->toDateString();
+        $this->syncPickerToAnchor();
     }
 
     public function next(): void
     {
         $this->anchorDate = $this->shiftAnchor(1)->toDateString();
+        $this->syncPickerToAnchor();
     }
 
     public function today(): void
     {
         $this->anchorDate = today()->toDateString();
+        $this->syncPickerToAnchor();
+    }
+
+    public function goTo(string $date): void
+    {
+        $this->anchorDate = Carbon::parse($date)->toDateString();
+        $this->syncPickerToAnchor();
+    }
+
+    public function pickerPrev(): void
+    {
+        $this->pickerMonth = Carbon::parse($this->pickerMonth)->subMonthNoOverflow()->startOfMonth()->toDateString();
+    }
+
+    public function pickerNext(): void
+    {
+        $this->pickerMonth = Carbon::parse($this->pickerMonth)->addMonthNoOverflow()->startOfMonth()->toDateString();
+    }
+
+    protected function syncPickerToAnchor(): void
+    {
+        $this->pickerMonth = Carbon::parse($this->anchorDate)->startOfMonth()->toDateString();
+    }
+
+    /** Podaci za mini kalendar (popover za izbor datuma). */
+    protected function pickerData(): array
+    {
+        $month = Carbon::parse($this->pickerMonth);
+        $gridStart = $month->copy()->startOfWeek();
+        $gridEnd = $month->copy()->endOfMonth()->endOfWeek();
+        $anchor = Carbon::parse($this->anchorDate);
+
+        $weeks = [];
+        $cursor = $gridStart->copy();
+        while ($cursor <= $gridEnd) {
+            $week = [];
+            foreach (range(0, 6) as $i) {
+                $date = $cursor->copy()->addDays($i);
+                $week[] = [
+                    'date' => $date->toDateString(),
+                    'day' => $date->day,
+                    'inMonth' => $date->month === $month->month,
+                    'isToday' => $date->isToday(),
+                    'isAnchor' => $date->isSameDay($anchor),
+                ];
+            }
+            $weeks[] = $week;
+            $cursor->addWeek();
+        }
+
+        $monthNames = ['januar', 'februar', 'mart', 'april', 'maj', 'jun', 'jul', 'avgust', 'septembar', 'oktobar', 'novembar', 'decembar'];
+
+        return [
+            'weeks' => $weeks,
+            'label' => $monthNames[$month->month - 1] . ' ' . $month->year . '.',
+        ];
     }
 
     protected function shiftAnchor(int $direction): Carbon
@@ -104,6 +165,7 @@ class Kalendar extends Page
             'hours' => range(self::START_HOUR, self::END_HOUR),
             'gridHeight' => (self::END_HOUR - self::START_HOUR) * 60 * self::PX_PER_MIN,
             'nowOffset' => $this->nowOffset(),
+            'picker' => $this->pickerData(),
         ];
     }
 
