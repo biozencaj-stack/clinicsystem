@@ -125,6 +125,37 @@ class AdminPagesTest extends TestCase
         }
     }
 
+    public function test_izvestaj_rada_stranica_i_pdf(): void
+    {
+        $this->actingAs($this->admin)
+            ->get('/admin/izvestaj-rada')
+            ->assertOk()
+            ->assertSee('Izveštaj rada');
+
+        $lastMonth = now()->subMonthNoOverflow();
+        $this->actingAs($this->admin)
+            ->get('/stampa/izvestaj-rada/' . $lastMonth->format('Y-m'))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+    }
+
+    public function test_izvestaj_rada_racuna_prihod_po_doktoru(): void
+    {
+        $lastMonth = now()->subMonthNoOverflow()->startOfMonth();
+        $report = \App\Filament\Pages\IzvestajRada::buildReport($lastMonth);
+
+        $this->assertGreaterThan(0, $report['total']['zavrseno'], 'Prošli mesec mora imati završenih pregleda iz seeder-a');
+        $this->assertGreaterThan(0, $report['total']['prihod']);
+
+        // Prihod svakog doktora = zbir (broj × cena) po uslugama.
+        foreach ($report['doctors'] as $row) {
+            $this->assertSame(
+                collect($row['services'])->sum('total'),
+                $row['prihod'],
+            );
+        }
+    }
+
     public function test_klik_na_jos_u_mesecu_otvara_dan_prikaz(): void
     {
         $this->actingAs($this->admin);

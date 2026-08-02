@@ -32,6 +32,8 @@ class DoctorAccountTest extends TestCase
         $this->get('/admin/messages')->assertForbidden();
         $this->get('/admin/doctors')->assertForbidden();
         $this->get('/admin/message-templates')->assertForbidden();
+        $this->get('/admin/izvestaj-rada')->assertForbidden();
+        $this->get('/stampa/izvestaj-rada/' . now()->format('Y-m'))->assertForbidden();
     }
 
     public function test_doktor_vidi_kalendar_termine_odsustva_i_pacijente(): void
