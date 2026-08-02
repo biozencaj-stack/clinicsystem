@@ -78,10 +78,14 @@ class KartonEntriesRelationManager extends RelationManager
                     ->label('Doktor'),
             ])
             ->headerActions([
-                CreateAction::make()->label('Novi unos'),
+                CreateAction::make()
+                    ->label('Novi unos')
+                    ->modalHeading('Novi unos u karton'),
             ])
             ->recordActions([
-                EditAction::make()->label('Izmeni'),
+                EditAction::make()
+                    ->label('Izmeni')
+                    ->modalHeading('Izmena unosa u kartonu'),
             ])
             ->defaultSort('entry_date', 'desc');
     }

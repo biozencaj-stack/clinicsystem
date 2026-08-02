@@ -8,4 +8,6 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateKartonEntry extends CreateRecord
 {
     protected static string $resource = KartonEntryResource::class;
+
+    protected static ?string $title = 'Novi unos u karton';
 }

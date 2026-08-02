@@ -27,7 +27,7 @@ class DoctorResource extends Resource
 
     protected static ?string $modelLabel = 'doktor';
 
-    protected static ?string $pluralModelLabel = 'doktori';
+    protected static ?string $pluralModelLabel = 'Doktori';
 
     protected static ?int $navigationSort = 2;
 

@@ -30,7 +30,7 @@ class PatientResource extends Resource
 
     protected static ?string $modelLabel = 'pacijent';
 
-    protected static ?string $pluralModelLabel = 'pacijenti';
+    protected static ?string $pluralModelLabel = 'Pacijenti';
 
     protected static ?int $navigationSort = 1;
 

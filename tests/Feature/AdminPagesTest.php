@@ -45,6 +45,34 @@ class AdminPagesTest extends TestCase
         $this->actingAs($this->admin)->get($path)->assertOk();
     }
 
+    public function test_natpisi_su_u_ispravnom_padezu_i_velicini_slova(): void
+    {
+        $this->actingAs($this->admin)->get('/admin/services')
+            ->assertSee('Dodaj uslugu')
+            ->assertSee('Usluge')
+            ->assertDontSee('Dodaj Usluga');
+
+        $this->actingAs($this->admin)->get('/admin/patients')
+            ->assertSee('Dodaj pacijenta')
+            ->assertDontSee('Dodaj Pacijent');
+
+        $this->actingAs($this->admin)->get('/admin/karton-entries')
+            ->assertSee('Unosi u karton')
+            ->assertDontSee('Unosi U Karton');
+
+        $this->actingAs($this->admin)->get('/admin/whatsapp-messages')
+            ->assertSee('WhatsApp poruke')
+            ->assertDontSee('WhatsApp Poruke');
+
+        $this->actingAs($this->admin)->get('/admin/nalazs/create')
+            ->assertSee('Novi nalaz')
+            ->assertDontSee('Napravi Nalaz');
+
+        $this->actingAs($this->admin)->get('/admin/doctors/create')
+            ->assertSee('Novi doktor')
+            ->assertDontSee('Napravi Doktor');
+    }
+
     public function test_kartica_pacijenta_sa_kartonom(): void
     {
         $patient = Patient::first();

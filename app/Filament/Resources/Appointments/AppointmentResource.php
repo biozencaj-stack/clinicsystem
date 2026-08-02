@@ -27,7 +27,7 @@ class AppointmentResource extends Resource
 
     protected static ?string $modelLabel = 'termin';
 
-    protected static ?string $pluralModelLabel = 'termini';
+    protected static ?string $pluralModelLabel = 'Termini';
 
     protected static ?int $navigationSort = 1;
 

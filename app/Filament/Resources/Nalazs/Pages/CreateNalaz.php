@@ -8,4 +8,6 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateNalaz extends CreateRecord
 {
     protected static string $resource = NalazResource::class;
+
+    protected static ?string $title = 'Novi nalaz';
 }

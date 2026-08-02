@@ -27,7 +27,7 @@ class NalazResource extends Resource
 
     protected static ?string $modelLabel = 'nalaz';
 
-    protected static ?string $pluralModelLabel = 'nalazi';
+    protected static ?string $pluralModelLabel = 'Nalazi';
 
     protected static ?int $navigationSort = 3;
 

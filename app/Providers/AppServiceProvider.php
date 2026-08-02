@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Filament\Resources\Resource;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +20,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Srpski: bez automatskog "Title Case" — samo prvo slovo veliko.
+        Resource::titleCaseModelLabel(false);
     }
 }

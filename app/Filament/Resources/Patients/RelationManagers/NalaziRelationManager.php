@@ -69,6 +69,7 @@ class NalaziRelationManager extends RelationManager
             ->headerActions([
                 CreateAction::make()
                     ->label('Novi nalaz')
+                    ->modalHeading('Novi nalaz')
                     ->modalDescription('Čuvanjem nalaza pacijent automatski dobija WhatsApp poruku sa bezbednim linkom za preuzimanje (u demo režimu poruka se samo beleži).'),
             ])
             ->recordActions([

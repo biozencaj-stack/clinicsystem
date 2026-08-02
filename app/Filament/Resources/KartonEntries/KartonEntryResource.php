@@ -27,7 +27,7 @@ class KartonEntryResource extends Resource
 
     protected static ?string $modelLabel = 'unos u karton';
 
-    protected static ?string $pluralModelLabel = 'unosi u karton';
+    protected static ?string $pluralModelLabel = 'Unosi u karton';
 
     protected static ?int $navigationSort = 2;
 
