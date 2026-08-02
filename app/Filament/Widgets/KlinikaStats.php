@@ -24,24 +24,28 @@ class KlinikaStats extends StatsOverviewWidget
             Stat::make('Termini danas', Appointment::whereDate('starts_at', today())
                 ->whereNotIn('status', ['otkazan'])
                 ->count())
-                ->description('zakazani i potvrđeni za danas')
+                ->description('zakazani i potvrđeni za danas — otvori kalendar')
                 ->icon('heroicon-o-calendar-days')
-                ->color('primary'),
+                ->color('primary')
+                ->url(url('/admin/kalendar')),
 
             Stat::make('Zahtevi na čekanju', Appointment::where('status', 'zahtev')->count())
-                ->description('sa sajta i WhatsApp bota — čekaju potvrdu')
+                ->description('sa sajta i WhatsApp bota — klikni za potvrdu')
                 ->icon('heroicon-o-clock')
-                ->color('warning'),
+                ->color('warning')
+                ->url(url('/admin/appointments?tableFilters[status][value]=zahtev')),
 
             Stat::make('Pacijenti', Patient::count())
                 ->description(Nalaz::whereDate('created_at', '>=', now()->subDays(30))->count() . ' nalaza u poslednjih 30 dana')
                 ->icon('heroicon-o-users')
-                ->color('success'),
+                ->color('success')
+                ->url(url('/admin/patients')),
 
             Stat::make('Poruke (7 dana)', Message::where('created_at', '>=', now()->subDays(7))->count())
                 ->description('WhatsApp · Viber · e-mail')
                 ->icon('heroicon-o-chat-bubble-left-right')
-                ->color('info'),
+                ->color('info')
+                ->url(url('/admin/messages')),
         ];
     }
 }
