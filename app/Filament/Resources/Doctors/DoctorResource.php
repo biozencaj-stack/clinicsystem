@@ -43,6 +43,13 @@ class DoctorResource extends Resource
         return DoctorsTable::configure($table);
     }
 
+    public static function getRelations(): array
+    {
+        return [
+            \App\Filament\Resources\Doctors\RelationManagers\WorkingHoursRelationManager::class,
+        ];
+    }
+
     public static function getPages(): array
     {
         return [

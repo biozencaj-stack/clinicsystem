@@ -13,8 +13,12 @@ class Appointment extends Model
         'potvrdjen' => 'Potvrđen od pacijenta',
         'zavrsen' => 'Završen',
         'otkazan' => 'Otkazan',
+        'odbijen' => 'Odbijen zahtev',
         'nije_dosao' => 'Nije došao',
     ];
+
+    /** Statusi koji zauzimaju termin u kalendaru i slot engine-u. */
+    public const BLOCKING_STATUSES = ['zahtev', 'zakazan', 'potvrdjen'];
 
     public const SOURCES = [
         'recepcija' => 'Recepcija',
@@ -25,7 +29,7 @@ class Appointment extends Model
 
     protected $fillable = [
         'patient_id', 'doctor_id', 'service_id', 'starts_at', 'ends_at',
-        'status', 'source', 'note',
+        'status', 'source', 'note', 'action_token',
     ];
 
     protected function casts(): array
@@ -39,6 +43,8 @@ class Appointment extends Model
     protected static function booted(): void
     {
         static::creating(function (Appointment $a) {
+            $a->action_token ??= \Illuminate\Support\Str::random(40);
+
             if (! $a->ends_at && $a->starts_at) {
                 $service = Service::find($a->service_id);
                 if ($service) {
@@ -75,5 +81,15 @@ class Appointment extends Model
     public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);
+    }
+
+    public function confirmUrl(): string
+    {
+        return url("/termin/{$this->action_token}/potvrdi");
+    }
+
+    public function cancelUrl(): string
+    {
+        return url("/termin/{$this->action_token}/otkazi");
     }
 }

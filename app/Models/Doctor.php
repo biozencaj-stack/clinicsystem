@@ -29,6 +29,16 @@ class Doctor extends Model
         return $this->hasMany(Appointment::class);
     }
 
+    public function workingHours(): HasMany
+    {
+        return $this->hasMany(DoctorWorkingHour::class)->orderBy('weekday')->orderBy('starts_at');
+    }
+
+    public function absences(): HasMany
+    {
+        return $this->hasMany(Absence::class)->latest('date_from');
+    }
+
     public function getFullNameAttribute(): string
     {
         return trim("{$this->title} {$this->name}");

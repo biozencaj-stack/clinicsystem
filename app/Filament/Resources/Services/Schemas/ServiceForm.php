@@ -35,6 +35,16 @@ class ServiceForm
                     ->numeric()
                     ->default(30)
                     ->required(),
+                TextInput::make('buffer_before')
+                    ->label('Buffer pre (min)')
+                    ->helperText('Priprema sobe/aparata — pacijent ga ne vidi, ali blokira raspored.')
+                    ->numeric()
+                    ->default(0),
+                TextInput::make('buffer_after')
+                    ->label('Buffer posle (min)')
+                    ->helperText('npr. sterilizacija posle intervencije.')
+                    ->numeric()
+                    ->default(0),
                 TextInput::make('price_rsd')
                     ->label('Cena (RSD)')
                     ->numeric(),

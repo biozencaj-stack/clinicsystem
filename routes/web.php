@@ -85,6 +85,66 @@ Route::get('/izvestaj/{token}', function (string $token) {
     ])->stream("izvestaj-{$entry->id}.pdf");
 })->name('izvestaj.download');
 
+// Potvrda dolaska jednim klikom iz podsetnika.
+Route::get('/termin/{token}/potvrdi', function (string $token) {
+    $a = \App\Models\Appointment::where('action_token', $token)
+        ->with(['doctor', 'service'])
+        ->firstOrFail();
+
+    if (in_array($a->status, ['zakazan', 'potvrdjen'])) {
+        if ($a->status === 'zakazan') {
+            $a->update(['status' => 'potvrdjen']);
+        }
+
+        return view('patient.action-result', [
+            'icon' => '✅',
+            'title' => 'Dolazak potvrđen',
+            'message' => 'Hvala Vam! Vaš termin je potvrđen — vidimo se.',
+            'appointment' => $a,
+        ]);
+    }
+
+    return view('patient.action-result', [
+        'icon' => 'ℹ️',
+        'title' => 'Termin nije aktivan',
+        'message' => 'Ovaj termin više nije aktivan. Ako mislite da je u pitanju greška, pozovite nas.',
+    ]);
+})->name('termin.potvrdi');
+
+// Otkazivanje jednim klikom — poštuje pravilo o minimalnom roku.
+Route::get('/termin/{token}/otkazi', function (string $token, \App\Services\AvailabilityService $availability) {
+    $a = \App\Models\Appointment::where('action_token', $token)
+        ->with(['doctor', 'service', 'patient'])
+        ->firstOrFail();
+
+    if (! in_array($a->status, \App\Models\Appointment::BLOCKING_STATUSES)) {
+        return view('patient.action-result', [
+            'icon' => 'ℹ️',
+            'title' => 'Termin nije aktivan',
+            'message' => 'Ovaj termin je već otkazan ili je prošao.',
+        ]);
+    }
+
+    if (! $availability->patientCanCancel($a)) {
+        return view('patient.action-result', [
+            'icon' => '📞',
+            'title' => 'Otkazivanje nije moguće onlajn',
+            'message' => 'Do termina je manje od ' . config('clinic.min_cancel_hours')
+                . ' sati, pa otkazivanje putem linka nije moguće. Molimo pozovite nas da dogovorimo novi termin.',
+            'appointment' => $a,
+        ]);
+    }
+
+    $a->update(['status' => 'otkazan']);
+
+    return view('patient.action-result', [
+        'icon' => '❌',
+        'title' => 'Termin otkazan',
+        'message' => 'Vaš termin je otkazan. Kad budete spremni, rado ćemo Vam zakazati novi.',
+        'appointment' => $a,
+    ]);
+})->name('termin.otkazi');
+
 // Štampa za osoblje (samo ulogovani) — brendiran PDF sa doktorom u dnu.
 Route::middleware('auth')->group(function () {
     Route::get('/stampa/nalaz/{nalaz}', function (Nalaz $nalaz) {

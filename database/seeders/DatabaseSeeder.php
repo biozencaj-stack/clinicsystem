@@ -35,14 +35,14 @@ class DatabaseSeeder extends Seeder
         ])->map(fn ($d) => Doctor::create($d + ['phone' => '+3816' . rand(10000000, 99999999)]));
 
         $services = collect([
-            ['name' => 'MR glave', 'category' => 'Radiologija', 'duration_minutes' => 45, 'price_rsd' => 21000, 'preparation' => 'Bez metalnih predmeta. Ponesite prethodne snimke.'],
-            ['name' => 'MR lumbalne kičme', 'category' => 'Radiologija', 'duration_minutes' => 45, 'price_rsd' => 21000, 'preparation' => 'Bez metalnih predmeta. Ponesite prethodne snimke.'],
+            ['name' => 'MR glave', 'category' => 'Radiologija', 'duration_minutes' => 45, 'buffer_after' => 15, 'price_rsd' => 21000, 'preparation' => 'Bez metalnih predmeta. Ponesite prethodne snimke.'],
+            ['name' => 'MR lumbalne kičme', 'category' => 'Radiologija', 'duration_minutes' => 45, 'buffer_after' => 15, 'price_rsd' => 21000, 'preparation' => 'Bez metalnih predmeta. Ponesite prethodne snimke.'],
             ['name' => 'Ultrazvuk abdomena', 'category' => 'Radiologija', 'duration_minutes' => 30, 'price_rsd' => 6500, 'preparation' => 'Doći našte, 6h bez hrane i gaziranih pića.'],
             ['name' => 'Pregled kardiologa + EKG', 'category' => 'Kardiologija', 'duration_minutes' => 30, 'price_rsd' => 8000, 'preparation' => null],
             ['name' => 'Ultrazvuk srca (ehokardiografija)', 'category' => 'Kardiologija', 'duration_minutes' => 30, 'price_rsd' => 9000, 'preparation' => null],
             ['name' => 'Holter pritiska 24h', 'category' => 'Kardiologija', 'duration_minutes' => 20, 'price_rsd' => 6000, 'preparation' => 'Obucite komotnu majicu.'],
             ['name' => 'Pregled gastroenterologa', 'category' => 'Gastroenterologija', 'duration_minutes' => 30, 'price_rsd' => 7500, 'preparation' => null],
-            ['name' => 'Gastroskopija', 'category' => 'Gastroenterologija', 'duration_minutes' => 40, 'price_rsd' => 15000, 'preparation' => 'Strogo našte 8h. Obavezna pratnja ako je sedacija.'],
+            ['name' => 'Gastroskopija', 'category' => 'Gastroenterologija', 'duration_minutes' => 40, 'buffer_before' => 15, 'buffer_after' => 15, 'price_rsd' => 15000, 'preparation' => 'Strogo našte 8h. Obavezna pratnja ako je sedacija.'],
             ['name' => 'Pregled endokrinologa', 'category' => 'Endokrinologija', 'duration_minutes' => 30, 'price_rsd' => 7500, 'preparation' => 'Ponesite laboratorijske analize ne starije od 30 dana.'],
             ['name' => 'Ultrazvuk štitaste žlezde', 'category' => 'Endokrinologija', 'duration_minutes' => 20, 'price_rsd' => 5500, 'preparation' => null],
             ['name' => 'Pregled reumatologa', 'category' => 'Reumatologija', 'duration_minutes' => 30, 'price_rsd' => 7500, 'preparation' => 'Ponesite prethodne nalaze i snimke.'],
@@ -132,6 +132,26 @@ class DatabaseSeeder extends Seeder
         $doc = fn (string $spec) => $doctors->firstWhere('specialty', $spec);
         $specialties = array_keys($visitPlans);
 
+        // ————— Radno vreme doktora —————
+        $mrIds = [$svc('MR glave')->id, $svc('MR lumbalne kičme')->id];
+        foreach ($doctors as $doctor) {
+            foreach (range(1, 5) as $weekday) {
+                if ($doctor->specialty === 'radiolog') {
+                    // Radiolog: MR samo pre podne, posle podne sve usluge.
+                    \App\Models\DoctorWorkingHour::create(['doctor_id' => $doctor->id, 'weekday' => $weekday, 'starts_at' => '08:00', 'ends_at' => '11:00', 'service_ids' => $mrIds]);
+                    \App\Models\DoctorWorkingHour::create(['doctor_id' => $doctor->id, 'weekday' => $weekday, 'starts_at' => '11:00', 'ends_at' => '15:00', 'service_ids' => null]);
+                } else {
+                    \App\Models\DoctorWorkingHour::create(['doctor_id' => $doctor->id, 'weekday' => $weekday, 'starts_at' => '08:00', 'ends_at' => '15:00', 'service_ids' => null]);
+                }
+            }
+        }
+        // Kardiolog radi i subotom (poklapa se sa primerom bot razgovora).
+        \App\Models\DoctorWorkingHour::create(['doctor_id' => $doc('kardiolog')->id, 'weekday' => 6, 'starts_at' => '10:00', 'ends_at' => '17:00', 'service_ids' => null]);
+
+        // ————— Odsustva i praznici —————
+        \App\Models\Absence::create(['doctor_id' => null, 'date_from' => now()->year . '-11-11', 'date_to' => now()->year . '-11-11', 'reason' => 'Dan primirja (državni praznik)', 'repeat_yearly' => true]);
+        \App\Models\Absence::create(['doctor_id' => $doc('reumatolog')->id, 'date_from' => now()->addDays(10)->toDateString(), 'date_to' => now()->addDays(14)->toDateString(), 'reason' => 'Godišnji odmor', 'repeat_yearly' => false]);
+
         // ————— Istorija: pacijenti 12-31 imaju 2-4 završene posete sa unosima u karton —————
         foreach ($patients->slice(12) as $i => $patient) {
             $spec = $specialties[$i % count($specialties)];
@@ -206,6 +226,20 @@ class DatabaseSeeder extends Seeder
                 'status' => $status,
                 'source' => $source,
             ]);
+        }
+
+        // ————— No-show primeri: pacijent sa 2 i pacijent sa 3 nedolaska —————
+        foreach ([[3, 2], [10, 3]] as [$pi, $count]) {
+            foreach (range(1, $count - ($pi === 3 ? 1 : 0)) as $n) {
+                Appointment::create([
+                    'patient_id' => $patients[$pi]->id,
+                    'doctor_id' => $doctors[$n % 7]->id,
+                    'service_id' => $services[$n % 15]->id,
+                    'starts_at' => now()->subMonths($n + 1)->setTime(10, 0),
+                    'status' => 'nije_dosao',
+                    'source' => 'recepcija',
+                ]);
+            }
         }
 
         // ————— Karton prvih pacijenata (detaljan primer) —————

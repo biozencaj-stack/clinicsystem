@@ -37,8 +37,7 @@ class AppointmentsTable
                         'zakazan' => 'info',
                         'potvrdjen' => 'success',
                         'zavrsen' => 'gray',
-                        'otkazan' => 'danger',
-                        'nije_dosao' => 'danger',
+                        'otkazan', 'odbijen', 'nije_dosao' => 'danger',
                         default => 'gray',
                     }),
                 TextColumn::make('source')
@@ -62,8 +61,20 @@ class AppointmentsTable
                     ->visible(fn ($record) => $record->status === 'zahtev')
                     ->requiresConfirmation()
                     ->modalHeading('Potvrda zahteva za termin')
-                    ->modalDescription('Potvrdom se pacijentu automatski šalje WhatsApp potvrda i zakazuje podsetnik 24h pre termina.')
+                    ->modalDescription('Potvrdom se pacijentu automatski šalje potvrda njegovim kanalom i zakazuje podsetnik 24h pre termina.')
                     ->action(fn ($record) => $record->update(['status' => 'zakazan'])),
+                Action::make('odbij')
+                    ->label('Odbij')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->visible(fn ($record) => $record->status === 'zahtev')
+                    ->requiresConfirmation()
+                    ->modalHeading('Odbijanje zahteva')
+                    ->modalDescription('Pacijent automatski dobija poruku da termin nije dostupan, sa pozivom da se javi za drugi termin.')
+                    ->action(function ($record) {
+                        $record->update(['status' => 'odbijen']);
+                        \App\Models\Message::sendRejection($record);
+                    }),
                 EditAction::make()->label('Izmeni'),
             ])
             ->defaultSort('starts_at', 'desc');

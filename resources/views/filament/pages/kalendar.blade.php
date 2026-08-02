@@ -176,6 +176,8 @@
         .gc-event.gc-otkazan { opacity: .45; }
         .gc-event.gc-otkazan .gc-event-title { text-decoration: line-through; }
         .gc-event.gc-nije_dosao { opacity: .45; }
+        .gc-event.gc-odbijen { opacity: .4; }
+        .gc-event.gc-odbijen .gc-event-title { text-decoration: line-through; }
         .gc-event.gc-zahtev {
             background-image: repeating-linear-gradient(
                 45deg,
@@ -306,7 +308,7 @@
         .st-zakazan { background: #DBEAFE; color: #1E40AF; }
         .st-potvrdjen { background: #D1FAE5; color: #065F46; }
         .st-zavrsen { background: #F3F4F6; color: #6B7280; }
-        .st-otkazan, .st-nije_dosao { background: #FEE2E2; color: #991B1B; }
+        .st-otkazan, .st-nije_dosao, .st-odbijen { background: #FEE2E2; color: #991B1B; }
 
         /* Mini kalendar (popover za izbor datuma) */
         [x-cloak] { display: none !important; }

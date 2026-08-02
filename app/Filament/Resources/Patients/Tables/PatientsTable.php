@@ -45,6 +45,16 @@ class PatientsTable
                 TextColumn::make('appointments_count')
                     ->label('Poseta')
                     ->counts('appointments'),
+                TextColumn::make('no_show_count')
+                    ->label('Nedolasci')
+                    ->state(fn ($record) => $record->appointments()->where('status', 'nije_dosao')->count())
+                    ->badge()
+                    ->color(fn ($state) => match (true) {
+                        $state >= 3 => 'danger',
+                        $state === 2 => 'warning',
+                        default => 'gray',
+                    })
+                    ->tooltip('Broj termina na koje pacijent nije došao'),
                 TextColumn::make('created_at')
                     ->label('Otvoren')
                     ->date('d.m.Y.')

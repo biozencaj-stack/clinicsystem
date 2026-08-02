@@ -103,9 +103,31 @@ class Message extends Model
             'body' => 'Podsetnik: sutra u ' . $a->starts_at->format('H:i')
                 . " imate zakazan pregled ({$a->service->name}) kod {$a->doctor->full_name}."
                 . ($a->service->preparation ? " Priprema: {$a->service->preparation}" : '')
-                . ' Molimo odgovorite POTVRĐUJEM ili OTKAZUJEM. — Poliklinika MagnaMed',
+                . " ✅ Potvrdite dolazak: {$a->confirmUrl()} ❌ Otkažite: {$a->cancelUrl()}"
+                . ' — Poliklinika MagnaMed',
             'status' => 'zakazano',
             'scheduled_for' => $a->starts_at->copy()->subDay(),
+        ]);
+    }
+
+    /** Poruka pacijentu kada je zahtev za termin odbijen. */
+    public static function sendRejection(Appointment $a): void
+    {
+        $a->loadMissing(['patient', 'service']);
+        if (! $a->patient || ! ($route = static::resolveChannel($a->patient))) {
+            return;
+        }
+
+        static::create([
+            'patient_id' => $a->patient_id,
+            'channel' => $route[0],
+            'type' => 'potvrda',
+            'destination' => $route[1],
+            'body' => "Poštovani/a {$a->patient->full_name}, nažalost traženi termin ({$a->service?->name}, "
+                . $a->starts_at->format('d.m.Y. u H:i') . ') nije dostupan. Pozovite nas na '
+                . config('clinic.phone') . ' da zajedno nađemo termin koji Vam odgovara. — Poliklinika MagnaMed',
+            'status' => 'simulirano',
+            'sent_at' => now(),
         ]);
     }
 
