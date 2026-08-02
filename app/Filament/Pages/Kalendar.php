@@ -45,13 +45,26 @@ class Kalendar extends Page
 
     public string $pickerMonth = '';
 
-    public ?string $doctorId = null;
+    /** @var array<int, string> */
+    public array $doctorIds = [];
 
     public function mount(): void
     {
         $this->mode = session('kalendar.mode', 'nedelja');
+        $this->doctorIds = session('kalendar.doctors', []);
         $this->anchorDate = today()->toDateString();
         $this->pickerMonth = today()->startOfMonth()->toDateString();
+    }
+
+    public function updatedDoctorIds(): void
+    {
+        session(['kalendar.doctors' => $this->doctorIds]);
+    }
+
+    public function allDoctors(): void
+    {
+        $this->doctorIds = [];
+        session(['kalendar.doctors' => []]);
     }
 
     public function setMode(string $mode): void
@@ -100,6 +113,19 @@ class Kalendar extends Page
     protected function syncPickerToAnchor(): void
     {
         $this->pickerMonth = Carbon::parse($this->anchorDate)->startOfMonth()->toDateString();
+    }
+
+    protected function doctorFilterLabel(Collection $doctors): string
+    {
+        if ($this->doctorIds === []) {
+            return 'Svi doktori';
+        }
+
+        $selected = $doctors->whereIn('id', array_map('intval', $this->doctorIds));
+
+        return $selected->count() === 1
+            ? $selected->first()->full_name
+            : $selected->count() . ' doktora';
     }
 
     /** Podaci za mini kalendar (popover za izbor datuma). */
@@ -167,6 +193,7 @@ class Kalendar extends Page
             'gridHeight' => (self::END_HOUR - self::START_HOUR) * 60 * self::PX_PER_MIN,
             'nowOffset' => $this->nowOffset(),
             'picker' => $this->pickerData(),
+            'doctorFilterLabel' => $this->doctorFilterLabel($doctors),
         ];
     }
 
@@ -184,7 +211,7 @@ class Kalendar extends Page
     {
         return Appointment::query()
             ->with(['patient', 'doctor', 'service'])
-            ->when($this->doctorId, fn ($q) => $q->where('doctor_id', $this->doctorId))
+            ->when($this->doctorIds !== [], fn ($q) => $q->whereIn('doctor_id', $this->doctorIds))
             ->orderBy('starts_at');
     }
 
@@ -223,8 +250,8 @@ class Kalendar extends Page
             ->get()
             ->groupBy('doctor_id');
 
-        $visibleDoctors = $this->doctorId
-            ? $doctors->where('id', (int) $this->doctorId)->values()
+        $visibleDoctors = $this->doctorIds !== []
+            ? $doctors->whereIn('id', array_map('intval', $this->doctorIds))->values()
             : $doctors;
 
         $columns = $visibleDoctors->map(fn (Doctor $d) => [

@@ -137,6 +137,22 @@ class AdminPagesTest extends TestCase
             ->assertSuccessful();
     }
 
+    public function test_filter_vise_doktora_u_kalendaru(): void
+    {
+        $this->actingAs($this->admin);
+
+        $ids = Doctor::take(2)->pluck('id')->map(fn ($id) => (string) $id)->all();
+
+        \Livewire\Livewire::test(\App\Filament\Pages\Kalendar::class)
+            ->set('doctorIds', $ids)
+            ->assertSuccessful()
+            ->call('setMode', 'dan')
+            ->assertSuccessful()
+            ->call('allDoctors')
+            ->assertSet('doctorIds', [])
+            ->assertSuccessful();
+    }
+
     public function test_danas_vraca_na_danasnji_datum_i_skroluje(): void
     {
         $this->actingAs($this->admin);

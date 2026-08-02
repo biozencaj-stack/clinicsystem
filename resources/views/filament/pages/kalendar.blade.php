@@ -398,6 +398,61 @@
         .dark .gc-picker-today-btn { color: #53B3AB; }
         .dark .gc-picker-today-btn:hover { background: #253345; }
 
+        /* Filter doktora sa čekboksovima */
+        .gc-docsel-wrap { position: relative; }
+        .gc-docsel-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            border: 1px solid #D1D5DB;
+            border-radius: .55rem;
+            background: #fff;
+            padding: .42rem .8rem;
+            font-size: .8rem;
+            font-weight: 500;
+            color: #1F2937;
+            cursor: pointer;
+            min-width: 11rem;
+            justify-content: space-between;
+        }
+        .dark .gc-docsel-btn { background: #1F2937; border-color: #4B5563; color: #E5E7EB; }
+        .gc-docsel-btn:hover { background: #F9FAFB; }
+        .dark .gc-docsel-btn:hover { background: #253345; }
+        .gc-docsel {
+            position: absolute;
+            top: calc(100% + .4rem);
+            right: 0;
+            z-index: 50;
+            width: 16rem;
+            background: #fff;
+            border: 1px solid #E5E7EB;
+            border-radius: .75rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, .12);
+            padding: .5rem;
+        }
+        .dark .gc-docsel { background: #1F2937; border-color: #374151; box-shadow: 0 10px 25px rgba(0, 0, 0, .45); }
+        .gc-docsel-item {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .4rem .5rem;
+            border-radius: .5rem;
+            cursor: pointer;
+            font-size: .8rem;
+            color: #1F2937;
+        }
+        .dark .gc-docsel-item { color: #E5E7EB; }
+        .gc-docsel-item:hover { background: #F3F4F6; }
+        .dark .gc-docsel-item:hover { background: #374151; }
+        .gc-docsel-item input {
+            accent-color: #0E6E6B;
+            width: .95rem;
+            height: .95rem;
+        }
+        .gc-docsel-spec { margin-left: auto; font-size: .66rem; color: #9CA3AF; }
+        .gc-docsel-foot { border-top: 1px solid #F3F4F6; margin-top: .3rem; padding-top: .35rem; display: flex; justify-content: flex-end; }
+        .dark .gc-docsel-foot { border-color: #374151; }
+
         .gc-legend { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: .5rem; }
         .gc-legend-item { display: flex; align-items: center; gap: .35rem; font-size: .72rem; color: #6B7280; }
         .dark .gc-legend-item { color: #9CA3AF; }
@@ -471,15 +526,30 @@
                 @endforeach
             </div>
 
-            <div class="gc-doctor-filter">
-                <x-filament::input.wrapper>
-                    <x-filament::input.select wire:model.live="doctorId">
-                        <option value="">Svi doktori</option>
-                        @foreach ($doctors as $doctor)
-                            <option value="{{ $doctor->id }}">{{ $doctor->full_name }}</option>
-                        @endforeach
-                    </x-filament::input.select>
-                </x-filament::input.wrapper>
+            <div class="gc-docsel-wrap" x-data="{ docselOpen: false }">
+                <button type="button" class="gc-docsel-btn" @click="docselOpen = ! docselOpen">
+                    <span>{{ $doctorFilterLabel }}</span>
+                    <svg class="gc-range-caret" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+
+                <div class="gc-docsel" x-show="docselOpen" x-cloak @click.outside="docselOpen = false">
+                    @foreach ($doctors as $doctor)
+                        <label class="gc-docsel-item">
+                            <input type="checkbox" value="{{ $doctor->id }}" wire:model.live="doctorIds">
+                            <span class="gc-legend-dot" style="background: {{ $doctor->color }}"></span>
+                            <span>{{ $doctor->full_name }}</span>
+                            <span class="gc-docsel-spec">{{ $doctor->specialty }}</span>
+                        </label>
+                    @endforeach
+
+                    <div class="gc-docsel-foot">
+                        <button type="button" class="gc-picker-today-btn" wire:click="allDoctors">
+                            Prikaži sve
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
