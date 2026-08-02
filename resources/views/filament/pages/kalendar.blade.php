@@ -1,128 +1,168 @@
 <x-filament-panels::page>
     <style>
-        .mm-toolbar {
+        .gc-toolbar {
             display: flex;
             flex-wrap: wrap;
             align-items: center;
             justify-content: space-between;
             gap: .75rem;
         }
-        .mm-toolbar-left { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
-        .mm-range { font-size: .875rem; font-weight: 600; color: #4A5D62; margin-left: .5rem; }
-        .dark .mm-range { color: #97ACA8; }
-        .mm-doctor-filter { width: 15rem; }
+        .gc-toolbar-left { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
+        .gc-range { font-size: 1rem; font-weight: 600; color: #1F2937; margin-left: .5rem; }
+        .dark .gc-range { color: #F3F4F6; }
+        .gc-doctor-filter { width: 15rem; }
 
-        .mm-cal-scroll { overflow-x: auto; padding-bottom: .5rem; }
-        .mm-cal {
-            display: grid;
-            grid-template-columns: repeat(7, minmax(160px, 1fr));
-            gap: .65rem;
-            min-width: 1150px;
-        }
-        .mm-day {
+        .gc-scroll { overflow-x: auto; }
+        .gc-wrap {
+            min-width: 1180px;
             background: #fff;
             border: 1px solid #E5E7EB;
             border-radius: .75rem;
-            min-height: 13rem;
-            display: flex;
-            flex-direction: column;
             overflow: hidden;
         }
-        .dark .mm-day { background: #111827; border-color: #374151; }
-        .mm-day.mm-today { border-color: #0E6E6B; box-shadow: 0 0 0 2px rgba(14, 110, 107, .25); }
-        .mm-day.mm-weekend .mm-day-head { background: #F3F4F6; }
-        .dark .mm-day.mm-weekend .mm-day-head { background: #1F2937; }
+        .dark .gc-wrap { background: #111827; border-color: #374151; }
 
-        .mm-day-head {
+        .gc-grid { display: grid; grid-template-columns: 4rem repeat(7, 1fr); }
+
+        /* Zaglavlje dana — Google stil: dan malim slovima, datum u krugu */
+        .gc-head { border-bottom: 1px solid #E5E7EB; }
+        .dark .gc-head { border-color: #374151; }
+        .gc-head-cell {
             text-align: center;
-            padding: .5rem .25rem;
-            border-bottom: 1px solid #E5E7EB;
-            background: #F9FAFB;
+            padding: .6rem .25rem .5rem;
+            border-left: 1px solid #F3F4F6;
         }
-        .dark .mm-day-head { border-color: #374151; background: #1F2937; }
-        .mm-day-name {
-            font-size: .65rem;
+        .dark .gc-head-cell { border-color: #1F2937; }
+        .gc-head-day {
+            font-size: .68rem;
             text-transform: uppercase;
             letter-spacing: .08em;
             color: #6B7280;
+            margin-bottom: .2rem;
         }
-        .dark .mm-day-name { color: #9CA3AF; }
-        .mm-day-date { font-size: .95rem; font-weight: 700; color: #111827; }
-        .dark .mm-day-date { color: #F9FAFB; }
-        .mm-today .mm-day-name, .mm-today .mm-day-date { color: #0E6E6B; }
-        .dark .mm-today .mm-day-name, .dark .mm-today .mm-day-date { color: #53B3AB; }
-
-        .mm-day-body { padding: .5rem; display: flex; flex-direction: column; gap: .4rem; flex: 1; }
-        .mm-empty { margin: auto; color: #D1D5DB; font-size: .8rem; }
-        .dark .mm-empty { color: #4B5563; }
-
-        .mm-apt {
-            display: block;
-            border-radius: .5rem;
-            border: 1px solid #E5E7EB;
-            border-left-width: 4px;
-            background: #FAFAFA;
-            padding: .45rem .55rem;
-            font-size: .72rem;
-            line-height: 1.35;
-            text-decoration: none;
-            transition: background .1s ease, transform .1s ease;
-        }
-        .mm-apt:hover { background: #F0F6F5; transform: translateY(-1px); }
-        .dark .mm-apt { background: #1F2937; border-color: #374151; }
-        .dark .mm-apt:hover { background: #253345; }
-        .mm-apt.mm-otkazan { opacity: .5; }
-        .mm-apt.mm-otkazan .mm-apt-time { text-decoration: line-through; }
-
-        .mm-apt-time { font-weight: 700; color: #111827; font-size: .78rem; }
-        .dark .mm-apt-time { color: #F9FAFB; }
-        .mm-apt-patient { font-weight: 600; color: #1F2937; }
-        .dark .mm-apt-patient { color: #E5E7EB; }
-        .mm-apt-service { color: #6B7280; }
-        .dark .mm-apt-service { color: #9CA3AF; }
-        .mm-apt-doctor { color: #6B7280; font-size: .68rem; }
-        .dark .mm-apt-doctor { color: #9CA3AF; }
-
-        .mm-badge {
-            display: inline-block;
-            margin-top: .3rem;
-            padding: .08rem .45rem;
+        .dark .gc-head-day { color: #9CA3AF; }
+        .gc-head-date {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.3rem;
+            height: 2.3rem;
             border-radius: 999px;
-            font-size: .62rem;
-            font-weight: 600;
+            font-size: 1.15rem;
+            font-weight: 500;
+            color: #1F2937;
         }
-        .mm-badge.zahtev { background: #FEF3C7; color: #92400E; }
-        .mm-badge.zakazan { background: #DBEAFE; color: #1E40AF; }
-        .mm-badge.potvrdjen { background: #D1FAE5; color: #065F46; }
-        .mm-badge.zavrsen { background: #F3F4F6; color: #6B7280; }
-        .mm-badge.otkazan, .mm-badge.nije_dosao { background: #FEE2E2; color: #991B1B; }
-        .dark .mm-badge.zahtev { background: #422F09; color: #FCD34D; }
-        .dark .mm-badge.zakazan { background: #172A54; color: #93C5FD; }
-        .dark .mm-badge.potvrdjen { background: #093F2E; color: #6EE7B7; }
-        .dark .mm-badge.zavrsen { background: #1F2937; color: #9CA3AF; }
-        .dark .mm-badge.otkazan, .dark .mm-badge.nije_dosao { background: #450E0E; color: #FCA5A5; }
+        .dark .gc-head-date { color: #F3F4F6; }
+        .gc-today .gc-head-day { color: #0E6E6B; font-weight: 700; }
+        .dark .gc-today .gc-head-day { color: #53B3AB; }
+        .gc-today .gc-head-date { background: #0E6E6B; color: #fff; }
+        .dark .gc-today .gc-head-date { background: #53B3AB; color: #062A28; }
 
-        .mm-legend { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: .25rem; }
-        .mm-legend-item { display: flex; align-items: center; gap: .35rem; font-size: .72rem; color: #6B7280; }
-        .dark .mm-legend-item { color: #9CA3AF; }
-        .mm-legend-dot { width: .65rem; height: .65rem; border-radius: 999px; display: inline-block; }
+        /* Vremenska osa */
+        .gc-gutter { position: relative; }
+        .gc-hour-label {
+            position: absolute;
+            right: .5rem;
+            transform: translateY(-50%);
+            font-size: .65rem;
+            color: #9CA3AF;
+            background: inherit;
+        }
+        .dark .gc-hour-label { color: #6B7280; }
+
+        /* Kolone dana */
+        .gc-col {
+            position: relative;
+            border-left: 1px solid #F3F4F6;
+            background-image: repeating-linear-gradient(
+                to bottom,
+                #F3F4F6 0, #F3F4F6 1px,
+                transparent 1px, transparent 60px
+            );
+        }
+        .dark .gc-col {
+            border-color: #1F2937;
+            background-image: repeating-linear-gradient(
+                to bottom,
+                #1F2937 0, #1F2937 1px,
+                transparent 1px, transparent 60px
+            );
+        }
+        .gc-col.gc-today-col { background-color: rgba(14, 110, 107, .04); }
+        .dark .gc-col.gc-today-col { background-color: rgba(83, 179, 171, .06); }
+
+        /* Blok termina */
+        .gc-event {
+            position: absolute;
+            border-radius: .4rem;
+            padding: .28rem .45rem;
+            font-size: .68rem;
+            line-height: 1.3;
+            color: #fff;
+            overflow: hidden;
+            text-decoration: none;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, .18);
+            border-left: 3px solid rgba(255, 255, 255, .55);
+            transition: filter .1s ease, box-shadow .1s ease;
+        }
+        .gc-event:hover { filter: brightness(1.12); box-shadow: 0 2px 6px rgba(0, 0, 0, .3); z-index: 30 !important; }
+        .gc-event-time { font-weight: 700; font-size: .66rem; opacity: .95; }
+        .gc-event-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .gc-event-sub { opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: .63rem; }
+
+        .gc-event.gc-zavrsen { opacity: .55; }
+        .gc-event.gc-otkazan { opacity: .45; }
+        .gc-event.gc-otkazan .gc-event-title { text-decoration: line-through; }
+        .gc-event.gc-zahtev {
+            background-image: repeating-linear-gradient(
+                45deg,
+                rgba(255, 255, 255, .18) 0, rgba(255, 255, 255, .18) 6px,
+                transparent 6px, transparent 12px
+            );
+        }
+        .gc-event.gc-nije_dosao { opacity: .45; }
+
+        /* Linija trenutnog vremena */
+        .gc-now {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #EA4335;
+            z-index: 25;
+        }
+        .gc-now::before {
+            content: '';
+            position: absolute;
+            left: -5px;
+            top: -4px;
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            background: #EA4335;
+        }
+
+        .gc-legend { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: .5rem; }
+        .gc-legend-item { display: flex; align-items: center; gap: .35rem; font-size: .72rem; color: #6B7280; }
+        .dark .gc-legend-item { color: #9CA3AF; }
+        .gc-legend-dot { width: .65rem; height: .65rem; border-radius: 999px; display: inline-block; }
+        .gc-legend-note { font-size: .72rem; color: #9CA3AF; margin-left: auto; }
     </style>
 
-    <div class="mm-toolbar">
-        <div class="mm-toolbar-left">
-            <x-filament::button color="gray" size="sm" wire:click="previousWeek" icon="heroicon-o-chevron-left">
-                Prethodna
-            </x-filament::button>
+    <div class="gc-toolbar">
+        <div class="gc-toolbar-left">
+            <x-filament::icon-button color="gray" wire:click="previousWeek" icon="heroicon-o-chevron-left" label="Prethodna nedelja" />
             <x-filament::button color="gray" size="sm" wire:click="currentWeek">
-                Ova nedelja
+                Danas
             </x-filament::button>
-            <x-filament::button color="gray" size="sm" wire:click="nextWeek" icon="heroicon-o-chevron-right" icon-position="after">
-                Sledeća
-            </x-filament::button>
-            <span class="mm-range">{{ $weekStart->format('d.m.Y.') }} — {{ $weekEnd->format('d.m.Y.') }}</span>
+            <x-filament::icon-button color="gray" wire:click="nextWeek" icon="heroicon-o-chevron-right" label="Sledeća nedelja" />
+            <span class="gc-range">
+                {{ $weekStart->format('d.') }} {{ $weekStart->format('m.') === $weekEnd->format('m.') ? '' : $weekStart->format('m.') }}
+                — {{ $weekEnd->format('d.m.Y.') }}
+            </span>
         </div>
 
-        <div class="mm-doctor-filter">
+        <div class="gc-doctor-filter">
             <x-filament::input.wrapper>
                 <x-filament::input.select wire:model.live="doctorId">
                     <option value="">Svi doktori</option>
@@ -134,47 +174,75 @@
         </div>
     </div>
 
-    <div class="mm-cal-scroll">
-        <div class="mm-cal">
-            @foreach ($days as $day)
-                <div @class([
-                    'mm-day',
-                    'mm-today' => $day['isToday'],
-                    'mm-weekend' => $loop->index >= 5,
-                ])>
-                    <div class="mm-day-head">
-                        <div class="mm-day-name">
-                            {{ ['Ponedeljak', 'Utorak', 'Sreda', 'Četvrtak', 'Petak', 'Subota', 'Nedelja'][$loop->index] }}
+    <div class="gc-scroll">
+        <div class="gc-wrap">
+            {{-- Zaglavlje: dani --}}
+            <div class="gc-grid gc-head">
+                <div></div>
+                @foreach ($days as $day)
+                    <div @class(['gc-head-cell', 'gc-today' => $day['isToday']])>
+                        <div class="gc-head-day">
+                            {{ ['Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub', 'Ned'][$loop->index] }}
                         </div>
-                        <div class="mm-day-date">{{ $day['date']->format('d.m.') }}</div>
+                        <span class="gc-head-date">{{ $day['date']->format('j') }}</span>
                     </div>
+                @endforeach
+            </div>
 
-                    <div class="mm-day-body">
-                        @forelse ($day['appointments'] as $a)
-                            <a href="{{ route('filament.admin.resources.appointments.edit', $a) }}"
-                               @class(['mm-apt', 'mm-otkazan' => $a->status === 'otkazan'])
-                               style="border-left-color: {{ $a->doctor?->color ?? '#0E6E6B' }}">
-                                <span class="mm-apt-time">{{ $a->starts_at->format('H:i') }}</span>
-                                <span class="mm-apt-patient">· {{ $a->patient?->full_name }}</span>
-                                <div class="mm-apt-service">{{ $a->service?->name }}</div>
-                                <div class="mm-apt-doctor">{{ $a->doctor?->full_name }}</div>
-                                <span class="mm-badge {{ $a->status }}">{{ $statusLabels[$a->status] ?? $a->status }}</span>
-                            </a>
-                        @empty
-                            <div class="mm-empty">Nema termina</div>
-                        @endforelse
-                    </div>
+            {{-- Mreža: sati × dani --}}
+            <div class="gc-grid">
+                <div class="gc-gutter" style="height: {{ $gridHeight }}px">
+                    @foreach ($hours as $h)
+                        @if (! $loop->first)
+                            <span class="gc-hour-label" style="top: {{ ($h - $hours[0]) * 60 }}px">
+                                {{ str_pad((string) $h, 2, '0', STR_PAD_LEFT) }}:00
+                            </span>
+                        @endif
+                    @endforeach
                 </div>
-            @endforeach
+
+                @foreach ($days as $day)
+                    <div @class(['gc-col', 'gc-today-col' => $day['isToday']]) style="height: {{ $gridHeight }}px">
+                        @foreach ($day['events'] as $e)
+                            @php
+                                $a = $e['a'];
+                                $widthPct = 100 / $e['laneCount'];
+                                $leftPct = $e['lane'] * $widthPct;
+                            @endphp
+                            <a href="{{ route('filament.admin.resources.appointments.edit', $a) }}"
+                               @class(['gc-event', 'gc-' . $a->status])
+                               style="top: {{ $e['top'] }}px;
+                                      height: {{ $e['height'] }}px;
+                                      left: calc({{ $leftPct }}% + 2px);
+                                      width: calc({{ $widthPct }}% - 5px);
+                                      background-color: {{ $a->doctor?->color ?? '#0E6E6B' }};
+                                      z-index: {{ 10 + $e['lane'] }};"
+                               title="{{ $a->starts_at->format('H:i') }}–{{ $a->ends_at?->format('H:i') }} · {{ $a->patient?->full_name }} · {{ $a->service?->name }} · {{ $a->doctor?->full_name }} · {{ $statusLabels[$a->status] ?? $a->status }}">
+                                <span class="gc-event-time">{{ $a->starts_at->format('H:i') }}</span>
+                                <div class="gc-event-title">{{ $a->patient?->full_name }}</div>
+                                <div class="gc-event-sub">{{ $a->service?->name }}</div>
+                                @if ($e['height'] >= 55)
+                                    <div class="gc-event-sub">{{ $a->doctor?->full_name }}</div>
+                                @endif
+                            </a>
+                        @endforeach
+
+                        @if ($day['isToday'] && $nowOffset !== null)
+                            <div class="gc-now" style="top: {{ $nowOffset }}px"></div>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
         </div>
     </div>
 
-    <div class="mm-legend">
+    <div class="gc-legend">
         @foreach ($doctors as $doctor)
-            <span class="mm-legend-item">
-                <span class="mm-legend-dot" style="background: {{ $doctor->color }}"></span>
+            <span class="gc-legend-item">
+                <span class="gc-legend-dot" style="background: {{ $doctor->color }}"></span>
                 {{ $doctor->full_name }}
             </span>
         @endforeach
+        <span class="gc-legend-note">Išrafiran blok = zahtev koji čeka potvrdu · bledi blokovi = završeni ili otkazani</span>
     </div>
 </x-filament-panels::page>
