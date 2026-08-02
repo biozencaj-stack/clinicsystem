@@ -161,16 +161,17 @@ Route::middleware('auth')->group(function () {
         ])->stream("nalaz-{$nalaz->id}.pdf");
     })->name('stampa.nalaz');
 
-    Route::get('/stampa/izvestaj-rada/{month}', function (string $month) {
+    Route::get('/stampa/izvestaj-rada/{from}/{to}', function (string $from, string $to) {
         abort_if(auth()->user()?->isDoctor(), 403);
 
-        $monthDate = \Illuminate\Support\Carbon::createFromFormat('Y-m', $month)->startOfMonth();
-        $report = \App\Filament\Pages\IzvestajRada::buildReport($monthDate);
+        $fromDate = \Illuminate\Support\Carbon::parse($from);
+        $toDate = \Illuminate\Support\Carbon::parse($to);
+        $report = \App\Filament\Pages\IzvestajRada::buildReport($fromDate, $toDate);
 
         return Pdf::loadView('pdf.izvestaj-rada', $report + [
-            'monthLabel' => \App\Filament\Pages\IzvestajRada::MONTH_NAMES[$monthDate->month - 1] . ' ' . $monthDate->year . '.',
-        ])->stream("izvestaj-rada-{$month}.pdf");
-    })->name('stampa.izvestaj-rada')->where('month', '\d{4}-\d{2}');
+            'rangeLabel' => $fromDate->format('d.m.Y.') . ' — ' . $toDate->format('d.m.Y.'),
+        ])->stream("izvestaj-rada-{$from}-{$to}.pdf");
+    })->name('stampa.izvestaj-rada')->where(['from' => '\d{4}-\d{2}-\d{2}', 'to' => '\d{4}-\d{2}-\d{2}']);
 
     Route::get('/stampa/izvestaj/{kartonEntry}', function (KartonEntry $kartonEntry) {
         $kartonEntry->load(['patient', 'doctor']);

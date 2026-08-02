@@ -36,17 +36,6 @@ class DoctorsTable
                     ->badge()
                     ->color('success')
                     ->tooltip('Završeni pregledi u tekućem mesecu'),
-                TextColumn::make('prihod_mesec')
-                    ->label('Prihod (mesec)')
-                    ->state(fn ($record) => number_format(
-                        $record->appointments()
-                            ->where('status', 'zavrsen')
-                            ->whereBetween('starts_at', [now()->startOfMonth(), now()->endOfMonth()])
-                            ->join('services', 'services.id', '=', 'appointments.service_id')
-                            ->sum('services.price_rsd'),
-                        0, ',', '.'
-                    ) . ' RSD')
-                    ->tooltip('Zbir cena završenih usluga u tekućem mesecu'),
                 TextColumn::make('ics_token')
                     ->label('Kalendar (ICS link)')
                     ->state(fn ($record) => $record->icsUrl())

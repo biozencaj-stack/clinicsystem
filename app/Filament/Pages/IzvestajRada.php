@@ -12,11 +12,6 @@ use UnitEnum;
 
 class IzvestajRada extends Page
 {
-    public const MONTH_NAMES = [
-        'januar', 'februar', 'mart', 'april', 'maj', 'jun',
-        'jul', 'avgust', 'septembar', 'oktobar', 'novembar', 'decembar',
-    ];
-
     protected string $view = 'filament.pages.izvestaj-rada';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChartBar;
@@ -29,42 +24,47 @@ class IzvestajRada extends Page
 
     protected static ?int $navigationSort = 5;
 
-    public int $monthOffset = 0;
+    public string $dateFrom = '';
+
+    public string $dateTo = '';
 
     public static function canAccess(): bool
     {
         return ! auth()->user()?->isDoctor();
     }
 
-    public function previousMonth(): void
+    public function mount(): void
     {
-        $this->monthOffset--;
+        $this->dateFrom = now()->startOfMonth()->toDateString();
+        $this->dateTo = now()->endOfMonth()->toDateString();
     }
 
-    public function nextMonth(): void
+    public function thisMonth(): void
     {
-        $this->monthOffset++;
+        $this->dateFrom = now()->startOfMonth()->toDateString();
+        $this->dateTo = now()->endOfMonth()->toDateString();
     }
 
-    public function currentMonth(): void
+    public function lastMonth(): void
     {
-        $this->monthOffset = 0;
+        $this->dateFrom = now()->subMonthNoOverflow()->startOfMonth()->toDateString();
+        $this->dateTo = now()->subMonthNoOverflow()->endOfMonth()->toDateString();
     }
 
-    public function getMonth(): Carbon
+    public function last30(): void
     {
-        return now()->startOfMonth()->addMonthsNoOverflow($this->monthOffset);
+        $this->dateFrom = now()->subDays(30)->toDateString();
+        $this->dateTo = now()->toDateString();
     }
 
     /**
-     * Mesečni obračun: po doktoru — završene usluge (broj × cena), nedolasci, otkazivanja.
-     *
-     * @return array{doctors: array, total: array, month: Carbon}
+     * Pregled rada za period: po doktoru — koje usluge, koliko puta,
+     * plus nedolasci i otkazivanja. Bez finansija.
      */
-    public static function buildReport(Carbon $month): array
+    public static function buildReport(Carbon $from, Carbon $to): array
     {
-        $from = $month->copy()->startOfMonth();
-        $to = $month->copy()->endOfMonth();
+        $from = $from->copy()->startOfDay();
+        $to = $to->copy()->endOfDay();
 
         $appointments = Appointment::query()
             ->with(['service', 'doctor'])
@@ -78,17 +78,11 @@ class IzvestajRada extends Page
 
             $services = $zavrseni
                 ->groupBy('service_id')
-                ->map(function ($group) {
-                    $service = $group->first()->service;
-
-                    return [
-                        'name' => $service?->name ?? '—',
-                        'count' => $group->count(),
-                        'price' => $service?->price_rsd ?? 0,
-                        'total' => $group->count() * ($service?->price_rsd ?? 0),
-                    ];
-                })
-                ->sortByDesc('total')
+                ->map(fn ($group) => [
+                    'name' => $group->first()->service?->name ?? '—',
+                    'count' => $group->count(),
+                ])
+                ->sortByDesc('count')
                 ->values()
                 ->all();
 
@@ -96,7 +90,6 @@ class IzvestajRada extends Page
                 'doctor' => $doctor,
                 'services' => $services,
                 'zavrseno' => $zavrseni->count(),
-                'prihod' => collect($services)->sum('total'),
                 'predstojeci' => $own->whereIn('status', ['zahtev', 'zakazan', 'potvrdjen'])->count(),
                 'nije_dosao' => $own->where('status', 'nije_dosao')->count(),
                 'otkazano' => $own->whereIn('status', ['otkazan', 'odbijen'])->count(),
@@ -107,21 +100,28 @@ class IzvestajRada extends Page
             'doctors' => $doctors->all(),
             'total' => [
                 'zavrseno' => $doctors->sum('zavrseno'),
-                'prihod' => $doctors->sum('prihod'),
+                'predstojeci' => $doctors->sum('predstojeci'),
                 'nije_dosao' => $doctors->sum('nije_dosao'),
                 'otkazano' => $doctors->sum('otkazano'),
             ],
-            'month' => $month,
         ];
     }
 
     protected function getViewData(): array
     {
-        $month = $this->getMonth();
+        $from = Carbon::parse($this->dateFrom ?: now()->startOfMonth());
+        $to = Carbon::parse($this->dateTo ?: now()->endOfMonth());
 
-        return static::buildReport($month) + [
-            'monthLabel' => static::MONTH_NAMES[$month->month - 1] . ' ' . $month->year . '.',
-            'printUrl' => route('stampa.izvestaj-rada', ['month' => $month->format('Y-m')]),
+        if ($to->lt($from)) {
+            $to = $from->copy();
+        }
+
+        return static::buildReport($from, $to) + [
+            'rangeLabel' => $from->format('d.m.Y.') . ' — ' . $to->format('d.m.Y.'),
+            'printUrl' => route('stampa.izvestaj-rada', [
+                'from' => $from->toDateString(),
+                'to' => $to->toDateString(),
+            ]),
         ];
     }
 }

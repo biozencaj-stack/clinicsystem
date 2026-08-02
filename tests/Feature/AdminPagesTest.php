@@ -132,28 +132,34 @@ class AdminPagesTest extends TestCase
             ->assertOk()
             ->assertSee('Izveštaj rada');
 
-        $lastMonth = now()->subMonthNoOverflow();
+        $from = now()->subMonthNoOverflow()->startOfMonth()->toDateString();
+        $to = now()->subMonthNoOverflow()->endOfMonth()->toDateString();
+
         $this->actingAs($this->admin)
-            ->get('/stampa/izvestaj-rada/' . $lastMonth->format('Y-m'))
+            ->get("/stampa/izvestaj-rada/{$from}/{$to}")
             ->assertOk()
             ->assertHeader('Content-Type', 'application/pdf');
     }
 
-    public function test_izvestaj_rada_racuna_prihod_po_doktoru(): void
+    public function test_izvestaj_rada_broji_preglede_po_doktoru_za_period(): void
     {
-        $lastMonth = now()->subMonthNoOverflow()->startOfMonth();
-        $report = \App\Filament\Pages\IzvestajRada::buildReport($lastMonth);
+        $from = now()->subMonthNoOverflow()->startOfMonth();
+        $to = now()->subMonthNoOverflow()->endOfMonth();
+        $report = \App\Filament\Pages\IzvestajRada::buildReport($from, $to);
 
         $this->assertGreaterThan(0, $report['total']['zavrseno'], 'Prošli mesec mora imati završenih pregleda iz seeder-a');
-        $this->assertGreaterThan(0, $report['total']['prihod']);
 
-        // Prihod svakog doktora = zbir (broj × cena) po uslugama.
+        // Zbir po uslugama = ukupno završenih za svakog doktora.
         foreach ($report['doctors'] as $row) {
             $this->assertSame(
-                collect($row['services'])->sum('total'),
-                $row['prihod'],
+                collect($row['services'])->sum('count'),
+                $row['zavrseno'],
             );
         }
+
+        // Uži period ne može imati više pregleda od šireg.
+        $uzi = \App\Filament\Pages\IzvestajRada::buildReport($from, $from->copy()->addDays(6));
+        $this->assertLessThanOrEqual($report['total']['zavrseno'], $uzi['total']['zavrseno']);
     }
 
     public function test_klik_na_jos_u_mesecu_otvara_dan_prikaz(): void
