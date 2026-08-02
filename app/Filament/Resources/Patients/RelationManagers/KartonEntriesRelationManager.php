@@ -84,6 +84,7 @@ class KartonEntriesRelationManager extends RelationManager
                     ->modalHeading('Novi unos u karton'),
             ])
             ->recordActions([
+                \App\Filament\Actions\PosaljiPacijentu::make('izveštaj', fn ($record) => $record->downloadUrl()),
                 Action::make('stampa')
                     ->label('Štampaj')
                     ->icon('heroicon-o-printer')

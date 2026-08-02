@@ -182,6 +182,37 @@ class AdminPagesTest extends TestCase
         $this->assertGreaterThan(0, \App\Models\Message::where('channel', 'email')->count());
     }
 
+    public function test_slanje_dokumenta_ide_kanalom_pacijenta(): void
+    {
+        $viberPatient = Patient::where('viber_opt_in', true)->where('whatsapp_opt_in', false)->firstOrFail();
+        $entry = \App\Models\KartonEntry::firstOrFail();
+
+        $message = \App\Models\Message::sendDocument($viberPatient, $entry->title, $entry->downloadUrl());
+
+        $this->assertNotNull($message);
+        $this->assertSame('viber', $message->channel);
+        $this->assertStringContainsString('/izvestaj/', $message->body);
+
+        $bezSaglasnosti = Patient::where('whatsapp_opt_in', false)
+            ->where('viber_opt_in', false)
+            ->where('email_opt_in', false)
+            ->firstOrFail();
+
+        $this->assertNull(\App\Models\Message::sendDocument($bezSaglasnosti, 'Test', 'http://test'));
+    }
+
+    public function test_izvestaj_preko_bezbednog_linka(): void
+    {
+        $entry = \App\Models\KartonEntry::firstOrFail();
+        $url = $entry->downloadUrl();
+
+        $this->get($url)
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+
+        $this->get('/izvestaj/nepostojeci-token')->assertNotFound();
+    }
+
     public function test_pacijent_bez_saglasnosti_ne_dobija_poruke(): void
     {
         $patient = Patient::where('whatsapp_opt_in', false)

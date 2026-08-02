@@ -65,6 +65,26 @@ Route::get('/nalaz/{token}', function (string $token) {
     ])->stream("nalaz-{$nalaz->id}.pdf");
 })->name('nalaz.download');
 
+// Bezbedan link za izveštaj iz kartona — pacijent ga dobija u poruci.
+Route::get('/izvestaj/{token}', function (string $token) {
+    $entry = KartonEntry::where('download_token', $token)->with(['patient', 'doctor'])->firstOrFail();
+
+    $content = $entry->content;
+    if ($entry->diagnosis_code) {
+        $content = "Dijagnoza (MKB-10): {$entry->diagnosis_code}\n\n{$content}";
+    }
+
+    return Pdf::loadView('pdf.nalaz', [
+        'title' => $entry->title,
+        'subtitle' => 'Izveštaj lekara — ' . (KartonEntry::TYPES[$entry->type] ?? $entry->type),
+        'patient' => $entry->patient,
+        'doctor' => $entry->doctor,
+        'date' => $entry->entry_date,
+        'content' => $content,
+        'docNumber' => 'I-' . str_pad((string) $entry->id, 5, '0', STR_PAD_LEFT),
+    ])->stream("izvestaj-{$entry->id}.pdf");
+})->name('izvestaj.download');
+
 // Štampa za osoblje (samo ulogovani) — brendiran PDF sa doktorom u dnu.
 Route::middleware('auth')->group(function () {
     Route::get('/stampa/nalaz/{nalaz}', function (Nalaz $nalaz) {

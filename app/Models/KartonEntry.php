@@ -18,12 +18,28 @@ class KartonEntry extends Model
 
     protected $fillable = [
         'patient_id', 'doctor_id', 'appointment_id', 'entry_date',
-        'type', 'diagnosis_code', 'title', 'content',
+        'type', 'diagnosis_code', 'title', 'content', 'download_token',
     ];
 
     protected function casts(): array
     {
         return ['entry_date' => 'date'];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (KartonEntry $entry) {
+            $entry->download_token ??= \Illuminate\Support\Str::random(40);
+        });
+    }
+
+    public function downloadUrl(): string
+    {
+        if (blank($this->download_token)) {
+            $this->forceFill(['download_token' => \Illuminate\Support\Str::random(40)])->saveQuietly();
+        }
+
+        return url("/izvestaj/{$this->download_token}");
     }
 
     public function patient(): BelongsTo

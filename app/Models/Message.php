@@ -17,6 +17,7 @@ class Message extends Model
         'potvrda' => 'Potvrda termina',
         'podsetnik' => 'Podsetnik (24h)',
         'nalaz' => 'Nalaz spreman',
+        'dokument' => 'Dokument pacijentu',
         'izmena' => 'Izmena (doktoru)',
         'bot' => 'AI bot razgovor',
     ];
@@ -105,6 +106,27 @@ class Message extends Model
                 . ' Molimo odgovorite POTVRĐUJEM ili OTKAZUJEM. — Poliklinika MagnaMed',
             'status' => 'zakazano',
             'scheduled_for' => $a->starts_at->copy()->subDay(),
+        ]);
+    }
+
+    /**
+     * Šalje pacijentu bezbedan link ka dokumentu preko njegovog kanala.
+     * Vraća null ako pacijent nema nijednu saglasnost.
+     */
+    public static function sendDocument(Patient $patient, string $title, string $url, string $type = 'dokument'): ?self
+    {
+        if (! ($route = static::resolveChannel($patient))) {
+            return null;
+        }
+
+        return static::create([
+            'patient_id' => $patient->id,
+            'channel' => $route[0],
+            'type' => $type,
+            'destination' => $route[1],
+            'body' => "Poštovani/a {$patient->full_name}, dokument „{$title}“ Vam je dostupan za bezbedno preuzimanje na: {$url} (link važi 7 dana). — Poliklinika MagnaMed",
+            'status' => 'simulirano',
+            'sent_at' => now(),
         ]);
     }
 

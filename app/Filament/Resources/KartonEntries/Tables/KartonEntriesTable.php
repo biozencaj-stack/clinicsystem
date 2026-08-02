@@ -46,6 +46,7 @@ class KartonEntriesTable
                     ->relationship('doctor', 'name'),
             ])
             ->recordActions([
+                \App\Filament\Actions\PosaljiPacijentu::make('izveštaj', fn ($record) => $record->downloadUrl()),
                 Action::make('stampa')
                     ->label('Štampaj izveštaj')
                     ->icon('heroicon-o-printer')

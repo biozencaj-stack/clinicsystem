@@ -34,6 +34,7 @@ class NalazsTable
                     ->tooltip('Da li je pacijentu poslata WhatsApp poruka da je nalaz spreman'),
             ])
             ->recordActions([
+                \App\Filament\Actions\PosaljiPacijentu::make('nalaz', fn ($record) => $record->downloadUrl(), 'nalaz'),
                 Action::make('stampa')
                     ->label('Štampaj')
                     ->icon('heroicon-o-printer')

@@ -73,6 +73,7 @@ class NalaziRelationManager extends RelationManager
                     ->modalDescription('Čuvanjem nalaza pacijent automatski dobija WhatsApp poruku sa bezbednim linkom za preuzimanje (u demo režimu poruka se samo beleži).'),
             ])
             ->recordActions([
+                \App\Filament\Actions\PosaljiPacijentu::make('nalaz', fn ($record) => $record->downloadUrl(), 'nalaz'),
                 Action::make('stampa')
                     ->label('Štampaj')
                     ->icon('heroicon-o-printer')
