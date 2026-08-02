@@ -13,6 +13,11 @@ class KlinikaStats extends StatsOverviewWidget
 {
     protected static ?int $sort = 1;
 
+    public static function canView(): bool
+    {
+        return ! auth()->user()?->isDoctor();
+    }
+
     protected function getStats(): array
     {
         return [

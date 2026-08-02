@@ -36,6 +36,11 @@ class PatientResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'full_name';
 
+    public static function canViewAny(): bool
+    {
+        return ! auth()->user()?->isDoctor();
+    }
+
     public static function form(Schema $schema): Schema
     {
         return PatientForm::configure($schema);

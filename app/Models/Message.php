@@ -68,6 +68,22 @@ class Message extends Model
         };
     }
 
+    /** Placeholder vrednosti iz termina za render šablona. */
+    protected static function appointmentVars(Appointment $a): array
+    {
+        return [
+            '%pacijent_ime%' => $a->patient?->full_name ?? '',
+            '%usluga%' => $a->service?->name ?? '',
+            '%datum%' => $a->starts_at->format('d.m.Y.'),
+            '%vreme%' => $a->starts_at->format('H:i'),
+            '%doktor%' => $a->doctor?->full_name ?? '',
+            '%priprema%' => $a->service?->preparation ? "Priprema: {$a->service->preparation}" : '',
+            '%potvrdi_link%' => $a->confirmUrl(),
+            '%otkazi_link%' => $a->cancelUrl(),
+            '%telefon_klinike%' => config('clinic.phone'),
+        ];
+    }
+
     public static function sendConfirmation(Appointment $a): void
     {
         $a->loadMissing(['patient', 'doctor', 'service']);
@@ -75,14 +91,14 @@ class Message extends Model
             return;
         }
 
+        $template = MessageTemplate::resolve('potvrda', $a->service_id);
+
         static::create([
             'patient_id' => $a->patient_id,
             'channel' => $route[0],
             'type' => 'potvrda',
             'destination' => $route[1],
-            'body' => "Poštovani/a {$a->patient->full_name}, Vaš termin je zakazan: {$a->service->name}, "
-                . $a->starts_at->format('d.m.Y.') . ' u ' . $a->starts_at->format('H:i')
-                . " kod {$a->doctor->full_name}. Za otkazivanje odgovorite OTKAZUJEM. — Poliklinika MagnaMed",
+            'body' => MessageTemplate::render($template['body'], static::appointmentVars($a)),
             'status' => 'simulirano',
             'sent_at' => now(),
         ]);
@@ -95,37 +111,36 @@ class Message extends Model
             return;
         }
 
+        $template = MessageTemplate::resolve('podsetnik', $a->service_id);
+        $offsetHours = $template['offset_hours'] ?? 24;
+
         static::create([
             'patient_id' => $a->patient_id,
             'channel' => $route[0],
             'type' => 'podsetnik',
             'destination' => $route[1],
-            'body' => 'Podsetnik: sutra u ' . $a->starts_at->format('H:i')
-                . " imate zakazan pregled ({$a->service->name}) kod {$a->doctor->full_name}."
-                . ($a->service->preparation ? " Priprema: {$a->service->preparation}" : '')
-                . " ✅ Potvrdite dolazak: {$a->confirmUrl()} ❌ Otkažite: {$a->cancelUrl()}"
-                . ' — Poliklinika MagnaMed',
+            'body' => MessageTemplate::render($template['body'], static::appointmentVars($a)),
             'status' => 'zakazano',
-            'scheduled_for' => $a->starts_at->copy()->subDay(),
+            'scheduled_for' => $a->starts_at->copy()->subHours($offsetHours),
         ]);
     }
 
     /** Poruka pacijentu kada je zahtev za termin odbijen. */
     public static function sendRejection(Appointment $a): void
     {
-        $a->loadMissing(['patient', 'service']);
+        $a->loadMissing(['patient', 'doctor', 'service']);
         if (! $a->patient || ! ($route = static::resolveChannel($a->patient))) {
             return;
         }
+
+        $template = MessageTemplate::resolve('odbijen', $a->service_id);
 
         static::create([
             'patient_id' => $a->patient_id,
             'channel' => $route[0],
             'type' => 'potvrda',
             'destination' => $route[1],
-            'body' => "Poštovani/a {$a->patient->full_name}, nažalost traženi termin ({$a->service?->name}, "
-                . $a->starts_at->format('d.m.Y. u H:i') . ') nije dostupan. Pozovite nas na '
-                . config('clinic.phone') . ' da zajedno nađemo termin koji Vam odgovara. — Poliklinika MagnaMed',
+            'body' => MessageTemplate::render($template['body'], static::appointmentVars($a)),
             'status' => 'simulirano',
             'sent_at' => now(),
         ]);
@@ -141,12 +156,19 @@ class Message extends Model
             return null;
         }
 
+        $template = MessageTemplate::resolve($type === 'nalaz' ? 'nalaz' : 'dokument');
+
         return static::create([
             'patient_id' => $patient->id,
             'channel' => $route[0],
             'type' => $type,
             'destination' => $route[1],
-            'body' => "Poštovani/a {$patient->full_name}, dokument „{$title}“ Vam je dostupan za bezbedno preuzimanje na: {$url} (link važi 7 dana). — Poliklinika MagnaMed",
+            'body' => MessageTemplate::render($template['body'], [
+                '%pacijent_ime%' => $patient->full_name,
+                '%naziv_dokumenta%' => $title,
+                '%dokument_link%' => $url,
+                '%telefon_klinike%' => config('clinic.phone'),
+            ]),
             'status' => 'simulirano',
             'sent_at' => now(),
         ]);
@@ -155,21 +177,12 @@ class Message extends Model
     public static function sendNalazReady(Nalaz $n): void
     {
         $n->loadMissing('patient');
-        if (! $n->patient || ! ($route = static::resolveChannel($n->patient))) {
+        if (! $n->patient) {
             return;
         }
 
-        static::create([
-            'patient_id' => $n->patient_id,
-            'channel' => $route[0],
-            'type' => 'nalaz',
-            'destination' => $route[1],
-            'body' => "Poštovani/a {$n->patient->full_name}, Vaš nalaz „{$n->title}“ je spreman. "
-                . "Preuzmite ga bezbedno na: {$n->downloadUrl()} (link važi 7 dana). — Poliklinika MagnaMed",
-            'status' => 'simulirano',
-            'sent_at' => now(),
-        ]);
-
-        $n->forceFill(['ready_notified_at' => now()])->saveQuietly();
+        if (static::sendDocument($n->patient, $n->title, $n->downloadUrl(), 'nalaz')) {
+            $n->forceFill(['ready_notified_at' => now()])->saveQuietly();
+        }
     }
 }

@@ -31,6 +31,28 @@ class AppointmentResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
+    /** Doktor vidi samo svoje termine, bez izmena. */
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (auth()->user()?->isDoctor()) {
+            $query->where('doctor_id', auth()->user()->doctor_id);
+        }
+
+        return $query;
+    }
+
+    public static function canCreate(): bool
+    {
+        return ! auth()->user()?->isDoctor();
+    }
+
+    public static function canEdit($record): bool
+    {
+        return ! auth()->user()?->isDoctor();
+    }
+
     public static function form(Schema $schema): Schema
     {
         return AppointmentForm::configure($schema);

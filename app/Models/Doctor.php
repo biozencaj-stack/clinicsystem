@@ -39,6 +39,11 @@ class Doctor extends Model
         return $this->hasMany(Absence::class)->latest('date_from');
     }
 
+    public function scheduleOverrides(): HasMany
+    {
+        return $this->hasMany(DoctorScheduleOverride::class)->latest('date');
+    }
+
     public function getFullNameAttribute(): string
     {
         return trim("{$this->title} {$this->name}");

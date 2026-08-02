@@ -12,13 +12,24 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'email', 'password', 'doctor_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
     public function canAccessPanel(Panel $panel): bool
     {
         return true;
+    }
+
+    public function doctor(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Doctor::class);
+    }
+
+    /** Da li je nalog vezan za doktora (ograničen pristup: svoji termini i odsustva). */
+    public function isDoctor(): bool
+    {
+        return $this->doctor_id !== null;
     }
 
     /** @use HasFactory<UserFactory> */

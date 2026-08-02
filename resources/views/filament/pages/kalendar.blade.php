@@ -528,7 +528,7 @@
                 @endforeach
             </div>
 
-            <div class="gc-docsel-wrap" x-data="{ docselOpen: false }">
+            <div class="gc-docsel-wrap" x-data="{ docselOpen: false }" @if ($isDoctorUser) style="display: none" @endif>
                 <button type="button" class="gc-docsel-btn" @click="docselOpen = ! docselOpen">
                     <span>{{ $doctorFilterLabel }}</span>
                     <svg class="gc-range-caret" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">

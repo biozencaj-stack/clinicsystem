@@ -33,6 +33,11 @@ class ServiceResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    public static function canViewAny(): bool
+    {
+        return ! auth()->user()?->isDoctor();
+    }
+
     public static function form(Schema $schema): Schema
     {
         return ServiceForm::configure($schema);

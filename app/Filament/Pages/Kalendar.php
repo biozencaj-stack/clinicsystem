@@ -54,15 +54,30 @@ class Kalendar extends Page
         $this->doctorIds = session('kalendar.doctors', []);
         $this->anchorDate = today()->toDateString();
         $this->pickerMonth = today()->startOfMonth()->toDateString();
+
+        // Doktorski nalog uvek gleda samo svoj kalendar.
+        if (auth()->user()?->isDoctor()) {
+            $this->doctorIds = [(string) auth()->user()->doctor_id];
+        }
     }
 
     public function updatedDoctorIds(): void
     {
+        if (auth()->user()?->isDoctor()) {
+            $this->doctorIds = [(string) auth()->user()->doctor_id];
+
+            return;
+        }
+
         session(['kalendar.doctors' => $this->doctorIds]);
     }
 
     public function allDoctors(): void
     {
+        if (auth()->user()?->isDoctor()) {
+            return;
+        }
+
         $this->doctorIds = [];
         session(['kalendar.doctors' => []]);
     }
@@ -194,6 +209,7 @@ class Kalendar extends Page
             'nowOffset' => $this->nowOffset(),
             'picker' => $this->pickerData(),
             'doctorFilterLabel' => $this->doctorFilterLabel($doctors),
+            'isDoctorUser' => (bool) auth()->user()?->isDoctor(),
         ];
     }
 

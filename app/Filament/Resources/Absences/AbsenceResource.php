@@ -36,6 +36,18 @@ class AbsenceResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
+    /** Doktor vidi i unosi samo svoja odsustva. */
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (auth()->user()?->isDoctor()) {
+            $query->where('doctor_id', auth()->user()->doctor_id);
+        }
+
+        return $query;
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema
@@ -45,6 +57,7 @@ class AbsenceResource extends Resource
                     ->relationship('doctor', 'name')
                     ->getOptionLabelFromRecordUsing(fn ($record) => $record->full_name)
                     ->placeholder('Cela klinika (praznik / neradni dan)')
+                    ->visible(fn () => ! auth()->user()?->isDoctor())
                     ->preload(),
                 TextInput::make('reason')
                     ->label('Razlog')
@@ -89,7 +102,8 @@ class AbsenceResource extends Resource
             ->filters([
                 SelectFilter::make('doctor_id')
                     ->label('Doktor')
-                    ->relationship('doctor', 'name'),
+                    ->relationship('doctor', 'name')
+                    ->visible(fn () => ! auth()->user()?->isDoctor()),
             ])
             ->recordActions([
                 \Filament\Actions\EditAction::make()->label('Izmeni'),

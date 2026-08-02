@@ -30,6 +30,11 @@ class MessageResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
+    public static function canViewAny(): bool
+    {
+        return ! auth()->user()?->isDoctor();
+    }
+
     public static function form(Schema $schema): Schema
     {
         return MessageForm::configure($schema);

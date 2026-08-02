@@ -31,6 +31,11 @@ class KartonEntryResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    public static function canViewAny(): bool
+    {
+        return ! auth()->user()?->isDoctor();
+    }
+
     public static function form(Schema $schema): Schema
     {
         return KartonEntryForm::configure($schema);

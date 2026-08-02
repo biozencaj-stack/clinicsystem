@@ -21,6 +21,10 @@ class DanasnjiTermini extends TableWidget
                 Appointment::query()
                     ->with(['patient', 'doctor', 'service'])
                     ->whereDate('starts_at', today())
+                    ->when(
+                        auth()->user()?->isDoctor(),
+                        fn ($q) => $q->where('doctor_id', auth()->user()->doctor_id)
+                    )
                     ->orderBy('starts_at')
             )
             ->columns([

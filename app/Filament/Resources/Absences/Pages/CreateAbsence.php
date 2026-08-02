@@ -12,6 +12,16 @@ class CreateAbsence extends CreateRecord
 
     protected static ?string $title = 'Novo odsustvo';
 
+    /** Doktorski nalog uvek unosi odsustvo za sebe. */
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        if (auth()->user()?->isDoctor()) {
+            $data['doctor_id'] = auth()->user()->doctor_id;
+        }
+
+        return $data;
+    }
+
     protected function afterCreate(): void
     {
         $affected = $this->record->affectedAppointments()->get();

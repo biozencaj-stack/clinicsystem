@@ -170,6 +170,49 @@ class SchedulingEngineTest extends TestCase
         );
     }
 
+    public function test_poseban_dan_otvara_subotu_za_urologa(): void
+    {
+        $urolog = Doctor::where('specialty', 'urolog')->firstOrFail();
+        $pregled = Service::where('name', 'Pregled urologa')->firstOrFail();
+
+        $overrideSaturday = now()->next(Carbon::SATURDAY);
+        $regularSaturday = $overrideSaturday->copy()->addWeek();
+
+        $slots = $this->availability->slots($urolog, $pregled, $overrideSaturday);
+        $this->assertNotEmpty($slots);
+        $this->assertSame('10:00', $slots[0]->format('H:i'));
+
+        $this->assertEmpty($this->availability->slots($urolog, $pregled, $regularSaturday));
+    }
+
+    public function test_sablon_za_uslugu_ima_prednost_nad_opstim(): void
+    {
+        $gastro = Service::where('name', 'Gastroskopija')->firstOrFail();
+        $ostalo = Service::where('name', 'Pregled neurologa')->firstOrFail();
+
+        $this->assertSame(48, \App\Models\MessageTemplate::resolve('podsetnik', $gastro->id)['offset_hours']);
+        $this->assertSame(24, \App\Models\MessageTemplate::resolve('podsetnik', $ostalo->id)['offset_hours']);
+    }
+
+    public function test_gastro_podsetnik_ide_48h_ranije_sa_dijetom(): void
+    {
+        $gastro = Service::where('name', 'Gastroskopija')->firstOrFail();
+        $appointment = Appointment::where('service_id', $gastro->id)
+            ->whereIn('status', ['zakazan', 'potvrdjen'])
+            ->firstOrFail();
+
+        $reminder = \App\Models\Message::where('patient_id', $appointment->patient_id)
+            ->where('type', 'podsetnik')
+            ->latest('id')
+            ->firstOrFail();
+
+        $this->assertSame(
+            $appointment->starts_at->copy()->subHours(48)->toDateTimeString(),
+            $reminder->scheduled_for->toDateTimeString(),
+        );
+        $this->assertStringContainsString('dijeta', $reminder->body);
+    }
+
     protected function makeAppointment(Carbon $when, string $status): Appointment
     {
         return Appointment::create([

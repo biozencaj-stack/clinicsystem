@@ -37,10 +37,21 @@ class AvailabilityService
             return [];
         }
 
-        // 2. Radni periodi za taj dan u nedelji koji dozvoljavaju uslugu.
-        $periods = $doctor->workingHours
-            ->where('weekday', $date->dayOfWeekIso)
-            ->filter(fn ($p) => $p->allowsService($service->id));
+        // 2. Poseban dan (izmena rasporeda za datum) ima prednost nad nedeljnim rasporedom.
+        $override = \App\Models\DoctorScheduleOverride::query()
+            ->where('doctor_id', $doctor->id)
+            ->whereDate('date', $date)
+            ->first();
+
+        if ($override) {
+            $periods = collect($override->periodsForService($service->id))
+                ->map(fn ($p) => ['starts_at' => $p['starts_at'], 'ends_at' => $p['ends_at']]);
+        } else {
+            $periods = $doctor->workingHours
+                ->where('weekday', $date->dayOfWeekIso)
+                ->filter(fn ($p) => $p->allowsService($service->id))
+                ->map(fn ($p) => ['starts_at' => $p->starts_at, 'ends_at' => $p->ends_at]);
+        }
 
         if ($periods->isEmpty()) {
             return [];
@@ -66,8 +77,8 @@ class AvailabilityService
         $slots = [];
 
         foreach ($periods as $period) {
-            $periodStart = $date->copy()->setTimeFromTimeString($period->starts_at);
-            $periodEnd = $date->copy()->setTimeFromTimeString($period->ends_at);
+            $periodStart = $date->copy()->setTimeFromTimeString($period['starts_at']);
+            $periodEnd = $date->copy()->setTimeFromTimeString($period['ends_at']);
 
             // Koračanje po trajanju usluge — čisti termini bez zalutalih rupa.
             $cursor = $periodStart->copy()->addMinutes($service->buffer_before);

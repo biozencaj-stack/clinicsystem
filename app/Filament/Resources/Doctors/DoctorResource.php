@@ -47,7 +47,13 @@ class DoctorResource extends Resource
     {
         return [
             \App\Filament\Resources\Doctors\RelationManagers\WorkingHoursRelationManager::class,
+            \App\Filament\Resources\Doctors\RelationManagers\ScheduleOverridesRelationManager::class,
         ];
+    }
+
+    public static function canViewAny(): bool
+    {
+        return ! auth()->user()?->isDoctor();
     }
 
     public static function getPages(): array

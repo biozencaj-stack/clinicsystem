@@ -152,6 +152,43 @@ class DatabaseSeeder extends Seeder
         \App\Models\Absence::create(['doctor_id' => null, 'date_from' => now()->year . '-11-11', 'date_to' => now()->year . '-11-11', 'reason' => 'Dan primirja (državni praznik)', 'repeat_yearly' => true]);
         \App\Models\Absence::create(['doctor_id' => $doc('reumatolog')->id, 'date_from' => now()->addDays(10)->toDateString(), 'date_to' => now()->addDays(14)->toDateString(), 'reason' => 'Godišnji odmor', 'repeat_yearly' => false]);
 
+        // ————— Poseban dan: urolog radi sledeću subotu (zamena smene) —————
+        \App\Models\DoctorScheduleOverride::create([
+            'doctor_id' => $doc('urolog')->id,
+            'date' => now()->next(\Illuminate\Support\Carbon::SATURDAY)->toDateString(),
+            'reason' => 'Subotnji rad — zamena smene',
+            'periods' => [['starts_at' => '10:00', 'ends_at' => '14:00', 'service_ids' => null]],
+        ]);
+
+        // ————— Šabloni poruka: podrazumevani + primer za gastroskopiju (48h, dijeta) —————
+        foreach (\App\Models\MessageTemplate::DEFAULTS as $event => $body) {
+            \App\Models\MessageTemplate::create([
+                'event' => $event,
+                'name' => \App\Models\MessageTemplate::EVENTS[$event] . ' (standardni)',
+                'service_ids' => null,
+                'offset_hours' => $event === 'podsetnik' ? 24 : null,
+                'body' => $body,
+            ]);
+        }
+
+        \App\Models\MessageTemplate::create([
+            'event' => 'podsetnik',
+            'name' => 'Podsetnik za gastroskopiju sa dijetom (48h)',
+            'service_ids' => [$svc('Gastroskopija')->id],
+            'offset_hours' => 48,
+            'body' => 'Poštovani/a %pacijent_ime%, %datum% u %vreme% imate zakazanu gastroskopiju kod %doktor%. VAŽNO: 48h pre pregleda lagana dijeta bez teške hrane; poslednji obrok najkasnije 8h pre pregleda, posle toga strogo ništa. Obavezna pratnja ako je sedacija. ✅ Potvrdite: %potvrdi_link% ❌ Otkažite: %otkazi_link% — Poliklinika MagnaMed',
+        ]);
+
+        // ————— Doktorski nalog (dr Jelena Stanković se sama uloguje) —————
+        User::firstOrCreate(
+            ['email' => 'doktor@magnamed.rs'],
+            [
+                'name' => 'dr sci. med. Jelena Stanković',
+                'password' => Hash::make('doktor2026'),
+                'doctor_id' => $doc('kardiolog')->id,
+            ],
+        );
+
         // ————— Istorija: pacijenti 12-31 imaju 2-4 završene posete sa unosima u karton —————
         foreach ($patients->slice(12) as $i => $patient) {
             $spec = $specialties[$i % count($specialties)];
