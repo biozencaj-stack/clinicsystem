@@ -265,6 +265,47 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
+        // ————— Popunjen kalendar: narednih 60 dana bar 5 pregleda dnevno —————
+        // Termini se biraju kroz slot engine, pa poštuju radno vreme, buffere,
+        // odsustva i posebne dane (nedeljom klinika ne radi).
+        $availability = app(\App\Services\AvailabilityService::class);
+
+        foreach (range(1, 60) as $dayOffset) {
+            $date = today()->addDays($dayOffset);
+            if ($date->dayOfWeekIso === 7) {
+                continue;
+            }
+
+            $target = 5 + (($dayOffset * 3) % 4); // 5-8 termina dnevno
+            $created = 0;
+            $attempts = 0;
+
+            while ($created < $target && $attempts < 80) {
+                $attempts++;
+                $spec = $specialties[($dayOffset + $attempts) % count($specialties)];
+                $doctor = $doc($spec);
+                $planServices = $visitPlans[$spec];
+                $service = $svc($planServices[($dayOffset + $attempts) % count($planServices)]);
+
+                $slots = $availability->slots($doctor, $service, $date);
+                if ($slots === []) {
+                    continue;
+                }
+
+                $slot = $slots[($attempts * 5 + $dayOffset) % count($slots)];
+
+                Appointment::create([
+                    'patient_id' => $patients[($dayOffset * 5 + $created * 3 + $attempts) % 32]->id,
+                    'doctor_id' => $doctor->id,
+                    'service_id' => $service->id,
+                    'starts_at' => $slot,
+                    'status' => $created % 3 === 0 ? 'potvrdjen' : 'zakazan',
+                    'source' => ['recepcija', 'sajt', 'telefon', 'whatsapp'][($dayOffset + $created) % 4],
+                ]);
+                $created++;
+            }
+        }
+
         // ————— No-show primeri: pacijent sa 2 i pacijent sa 3 nedolaska —————
         foreach ([[3, 2], [10, 3]] as [$pi, $count]) {
             foreach (range(1, $count - ($pi === 3 ? 1 : 0)) as $n) {
