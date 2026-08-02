@@ -136,9 +136,20 @@
             transition: filter .1s ease, box-shadow .1s ease;
         }
         .gc-event:hover { filter: brightness(1.12); box-shadow: 0 2px 6px rgba(0, 0, 0, .3); z-index: 30 !important; }
-        .gc-event-time { font-weight: 700; font-size: .66rem; opacity: .95; }
+        .gc-event-time { font-weight: 700; font-size: .66rem; opacity: .95; flex: none; }
         .gc-event-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .gc-event-sub { opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: .63rem; }
+        /* Kompaktan jednoredni prikaz za kratke termine */
+        .gc-event.gc-compact {
+            display: flex;
+            align-items: center;
+            gap: .3rem;
+            padding: 0 .4rem;
+        }
+        .gc-event.gc-compact .gc-event-title { flex: 1; min-width: 0; }
+        /* Dvoredni prikaz: vreme i ime u istom redu */
+        .gc-event-row { display: flex; align-items: baseline; gap: .3rem; min-width: 0; }
+        .gc-event-row .gc-event-title { flex: 1; min-width: 0; }
         .gc-event.gc-zavrsen { opacity: .55; }
         .gc-event.gc-otkazan { opacity: .45; }
         .gc-event.gc-otkazan .gc-event-title { text-decoration: line-through; }
@@ -483,14 +494,21 @@
                                     $leftPct = $e['lane'] * $widthPct;
                                 @endphp
                                 <a href="{{ route('filament.admin.resources.appointments.edit', $a) }}"
-                                   @class(['gc-event', 'gc-' . $a->status])
+                                   @class(['gc-event', 'gc-compact' => $e['height'] < 46, 'gc-' . $a->status])
                                    style="top: {{ $e['top'] }}px; height: {{ $e['height'] }}px; left: calc({{ $leftPct }}% + 2px); width: calc({{ $widthPct }}% - 5px); background-color: {{ $a->doctor?->color ?? '#0E6E6B' }}; z-index: {{ 10 + $e['lane'] }};"
                                    title="{{ $a->starts_at->format('H:i') }}–{{ $a->ends_at?->format('H:i') }} · {{ $a->patient?->full_name }} · {{ $a->service?->name }} · {{ $a->doctor?->full_name }} · {{ $statusLabels[$a->status] ?? $a->status }}">
-                                    <span class="gc-event-time">{{ $a->starts_at->format('H:i') }}</span>
-                                    <div class="gc-event-title">{{ $a->patient?->full_name }}</div>
-                                    <div class="gc-event-sub">{{ $a->service?->name }}</div>
-                                    @if ($e['height'] >= 55)
-                                        <div class="gc-event-sub">{{ $a->doctor?->full_name }}</div>
+                                    @if ($e['height'] < 46)
+                                        <span class="gc-event-time">{{ $a->starts_at->format('H:i') }}</span>
+                                        <span class="gc-event-title">{{ $a->patient?->full_name }}</span>
+                                    @else
+                                        <div class="gc-event-row">
+                                            <span class="gc-event-time">{{ $a->starts_at->format('H:i') }}</span>
+                                            <span class="gc-event-title">{{ $a->patient?->full_name }}</span>
+                                        </div>
+                                        <div class="gc-event-sub">{{ $a->service?->name }}</div>
+                                        @if ($e['height'] >= 72)
+                                            <div class="gc-event-sub">{{ $a->doctor?->full_name }}</div>
+                                        @endif
                                     @endif
                                 </a>
                             @endforeach
@@ -544,12 +562,22 @@
                                     $leftPct = $e['lane'] * $widthPct;
                                 @endphp
                                 <a href="{{ route('filament.admin.resources.appointments.edit', $a) }}"
-                                   @class(['gc-event', 'gc-' . $a->status])
+                                   @class(['gc-event', 'gc-compact' => $e['height'] < 46, 'gc-' . $a->status])
                                    style="top: {{ $e['top'] }}px; height: {{ $e['height'] }}px; left: calc({{ $leftPct }}% + 2px); width: calc({{ $widthPct }}% - 5px); background-color: {{ $col['doctor']->color }}; z-index: {{ 10 + $e['lane'] }};"
                                    title="{{ $a->starts_at->format('H:i') }}–{{ $a->ends_at?->format('H:i') }} · {{ $a->patient?->full_name }} · {{ $a->service?->name }} · {{ $statusLabels[$a->status] ?? $a->status }}">
-                                    <span class="gc-event-time">{{ $a->starts_at->format('H:i') }}–{{ $a->ends_at?->format('H:i') }}</span>
-                                    <div class="gc-event-title">{{ $a->patient?->full_name }}</div>
-                                    <div class="gc-event-sub">{{ $a->service?->name }}</div>
+                                    @if ($e['height'] < 46)
+                                        <span class="gc-event-time">{{ $a->starts_at->format('H:i') }}</span>
+                                        <span class="gc-event-title">{{ $a->patient?->full_name }}</span>
+                                    @else
+                                        <div class="gc-event-row">
+                                            <span class="gc-event-time">{{ $a->starts_at->format('H:i') }}–{{ $a->ends_at?->format('H:i') }}</span>
+                                            <span class="gc-event-title">{{ $a->patient?->full_name }}</span>
+                                        </div>
+                                        <div class="gc-event-sub">{{ $a->service?->name }}</div>
+                                        @if ($e['height'] >= 72)
+                                            <div class="gc-event-sub">{{ $a->doctor?->full_name }}</div>
+                                        @endif
+                                    @endif
                                 </a>
                             @endforeach
 
