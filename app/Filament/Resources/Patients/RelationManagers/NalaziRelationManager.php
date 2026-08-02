@@ -32,6 +32,7 @@ class NalaziRelationManager extends RelationManager
                     ->label('Doktor')
                     ->relationship('doctor', 'name')
                     ->getOptionLabelFromRecordUsing(fn ($record) => $record->full_name)
+                    ->visible(fn () => ! auth()->user()?->isDoctor())
                     ->preload(),
                 DatePicker::make('issued_at')
                     ->label('Datum izdavanja')
@@ -70,6 +71,13 @@ class NalaziRelationManager extends RelationManager
                 CreateAction::make()
                     ->label('Novi nalaz')
                     ->modalHeading('Novi nalaz')
+                    ->mutateDataUsing(function (array $data) {
+                        if (auth()->user()?->isDoctor()) {
+                            $data['doctor_id'] = auth()->user()->doctor_id;
+                        }
+
+                        return $data;
+                    })
                     ->modalDescription('Čuvanjem nalaza pacijent automatski dobija WhatsApp poruku sa bezbednim linkom za preuzimanje (u demo režimu poruka se samo beleži).'),
             ])
             ->recordActions([

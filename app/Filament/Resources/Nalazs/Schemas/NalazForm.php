@@ -26,6 +26,7 @@ class NalazForm
                     ->label('Doktor')
                     ->relationship('doctor', 'name')
                     ->getOptionLabelFromRecordUsing(fn ($record) => $record->full_name)
+                    ->visible(fn () => ! auth()->user()?->isDoctor())
                     ->preload(),
                 TextInput::make('title')
                     ->label('Naziv nalaza')

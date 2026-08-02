@@ -33,9 +33,16 @@ class NalazResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'title';
 
-    public static function canViewAny(): bool
+    /** Doktor u globalnoj listi vidi nalaze koje je sam izdao. */
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        return ! auth()->user()?->isDoctor();
+        $query = parent::getEloquentQuery();
+
+        if (auth()->user()?->isDoctor()) {
+            $query->where('doctor_id', auth()->user()->doctor_id);
+        }
+
+        return $query;
     }
 
     public static function form(Schema $schema): Schema

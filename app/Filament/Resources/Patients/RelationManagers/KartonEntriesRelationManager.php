@@ -38,6 +38,7 @@ class KartonEntriesRelationManager extends RelationManager
                     ->label('Doktor')
                     ->relationship('doctor', 'name')
                     ->getOptionLabelFromRecordUsing(fn ($record) => $record->full_name)
+                    ->visible(fn () => ! auth()->user()?->isDoctor())
                     ->preload(),
                 TextInput::make('diagnosis_code')
                     ->label('MKB-10 šifra')
@@ -81,7 +82,14 @@ class KartonEntriesRelationManager extends RelationManager
             ->headerActions([
                 CreateAction::make()
                     ->label('Novi unos')
-                    ->modalHeading('Novi unos u karton'),
+                    ->modalHeading('Novi unos u karton')
+                    ->mutateDataUsing(function (array $data) {
+                        if (auth()->user()?->isDoctor()) {
+                            $data['doctor_id'] = auth()->user()->doctor_id;
+                        }
+
+                        return $data;
+                    }),
             ])
             ->recordActions([
                 \App\Filament\Actions\PosaljiPacijentu::make('izveštaj', fn ($record) => $record->downloadUrl()),
@@ -92,7 +100,9 @@ class KartonEntriesRelationManager extends RelationManager
                     ->openUrlInNewTab(),
                 EditAction::make()
                     ->label('Izmeni')
-                    ->modalHeading('Izmena unosa u kartonu'),
+                    ->modalHeading('Izmena unosa u kartonu')
+                    ->visible(fn ($record) => ! auth()->user()?->isDoctor()
+                        || $record->doctor_id === auth()->user()->doctor_id),
             ])
             ->defaultSort('entry_date', 'desc');
     }

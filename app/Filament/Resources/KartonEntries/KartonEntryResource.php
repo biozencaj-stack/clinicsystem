@@ -31,9 +31,16 @@ class KartonEntryResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
-    public static function canViewAny(): bool
+    /** Doktor u globalnoj listi vidi unose koje je sam napisao. */
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        return ! auth()->user()?->isDoctor();
+        $query = parent::getEloquentQuery();
+
+        if (auth()->user()?->isDoctor()) {
+            $query->where('doctor_id', auth()->user()->doctor_id);
+        }
+
+        return $query;
     }
 
     public static function form(Schema $schema): Schema

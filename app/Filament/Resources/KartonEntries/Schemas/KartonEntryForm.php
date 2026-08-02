@@ -26,6 +26,7 @@ class KartonEntryForm
                     ->label('Doktor')
                     ->relationship('doctor', 'name')
                     ->getOptionLabelFromRecordUsing(fn ($record) => $record->full_name)
+                    ->visible(fn () => ! auth()->user()?->isDoctor())
                     ->preload(),
                 DatePicker::make('entry_date')
                     ->label('Datum')

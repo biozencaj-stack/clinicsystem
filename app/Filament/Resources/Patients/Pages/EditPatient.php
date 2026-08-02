@@ -21,7 +21,18 @@ class EditPatient extends EditRecord
         return [
             DeleteAction::make()
                 ->label('Obriši pacijenta')
-                ->modalHeading('Brisanje pacijenta'),
+                ->modalHeading('Brisanje pacijenta')
+                ->visible(fn () => ! auth()->user()?->isDoctor()),
         ];
+    }
+
+    /** Doktor gleda administrativne podatke bez čuvanja — karton uređuje kroz tabove ispod. */
+    protected function getFormActions(): array
+    {
+        if (auth()->user()?->isDoctor()) {
+            return [];
+        }
+
+        return parent::getFormActions();
     }
 }

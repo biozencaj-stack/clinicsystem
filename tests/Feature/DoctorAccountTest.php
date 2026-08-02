@@ -24,19 +24,17 @@ class DoctorAccountTest extends TestCase
         $this->doctorUser = User::where('email', 'doktor@magnamed.rs')->firstOrFail();
     }
 
-    public function test_doktor_ne_vidi_pacijente_usluge_ni_poruke(): void
+    public function test_doktor_ne_vidi_administrativne_module(): void
     {
         $this->actingAs($this->doctorUser);
 
-        $this->get('/admin/patients')->assertForbidden();
         $this->get('/admin/services')->assertForbidden();
         $this->get('/admin/messages')->assertForbidden();
         $this->get('/admin/doctors')->assertForbidden();
-        $this->get('/admin/nalazs')->assertForbidden();
-        $this->get('/admin/karton-entries')->assertForbidden();
+        $this->get('/admin/message-templates')->assertForbidden();
     }
 
-    public function test_doktor_vidi_kalendar_termine_i_odsustva(): void
+    public function test_doktor_vidi_kalendar_termine_odsustva_i_pacijente(): void
     {
         $this->actingAs($this->doctorUser);
 
@@ -44,6 +42,50 @@ class DoctorAccountTest extends TestCase
         $this->get('/admin/kalendar')->assertOk();
         $this->get('/admin/appointments')->assertOk();
         $this->get('/admin/absences')->assertOk();
+        $this->get('/admin/patients')->assertOk();
+        $this->get('/admin/karton-entries')->assertOk();
+        $this->get('/admin/nalazs')->assertOk();
+    }
+
+    public function test_doktor_vidi_samo_svoje_pacijente_i_moze_da_otvori_karton(): void
+    {
+        $this->actingAs($this->doctorUser);
+
+        $visiblePatients = \App\Filament\Resources\Patients\PatientResource::getEloquentQuery()->get();
+        $this->assertNotEmpty($visiblePatients);
+        $this->assertLessThan(\App\Models\Patient::count(), $visiblePatients->count());
+
+        // Svaki vidljivi pacijent ima vezu sa ovim doktorom.
+        $doctorId = $this->doctorUser->doctor_id;
+        foreach ($visiblePatients as $patient) {
+            $treated = $patient->appointments()->where('doctor_id', $doctorId)->exists()
+                || $patient->kartonEntries()->where('doctor_id', $doctorId)->exists()
+                || $patient->nalazi()->where('doctor_id', $doctorId)->exists();
+            $this->assertTrue($treated, "Pacijent {$patient->full_name} nije lečen kod ovog doktora");
+        }
+
+        // Karton svog pacijenta može da otvori.
+        $this->get('/admin/patients/' . $visiblePatients->first()->id . '/edit')->assertOk();
+
+        // Tuđeg pacijenta ne može.
+        $other = \App\Models\Patient::whereNotIn('id', $visiblePatients->pluck('id'))->firstOrFail();
+        $this->get('/admin/patients/' . $other->id . '/edit')->assertNotFound();
+    }
+
+    public function test_doktor_u_globalnim_listama_vidi_samo_svoje_unose(): void
+    {
+        $this->actingAs($this->doctorUser);
+
+        $doctorId = $this->doctorUser->doctor_id;
+
+        $this->assertSame(
+            \App\Models\KartonEntry::where('doctor_id', $doctorId)->count(),
+            \App\Filament\Resources\KartonEntries\KartonEntryResource::getEloquentQuery()->count(),
+        );
+        $this->assertSame(
+            \App\Models\Nalaz::where('doctor_id', $doctorId)->count(),
+            \App\Filament\Resources\Nalazs\NalazResource::getEloquentQuery()->count(),
+        );
     }
 
     public function test_doktor_vidi_samo_svoje_termine(): void

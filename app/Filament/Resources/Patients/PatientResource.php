@@ -36,14 +36,39 @@ class PatientResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'full_name';
 
-    public static function canViewAny(): bool
+    /** Doktor vidi samo pacijente koje je lečio (termin, unos u karton ili nalaz). */
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = auth()->user();
+
+        if ($user?->isDoctor()) {
+            $doctorId = $user->doctor_id;
+            $query->where(function ($q) use ($doctorId) {
+                $q->whereHas('appointments', fn ($qq) => $qq->where('doctor_id', $doctorId))
+                    ->orWhereHas('kartonEntries', fn ($qq) => $qq->where('doctor_id', $doctorId))
+                    ->orWhereHas('nalazi', fn ($qq) => $qq->where('doctor_id', $doctorId));
+            });
+        }
+
+        return $query;
+    }
+
+    public static function canCreate(): bool
+    {
+        return ! auth()->user()?->isDoctor();
+    }
+
+    public static function canDelete($record): bool
     {
         return ! auth()->user()?->isDoctor();
     }
 
     public static function form(Schema $schema): Schema
     {
-        return PatientForm::configure($schema);
+        // Doktor otvara karton, ali administrativne podatke menja samo recepcija.
+        return PatientForm::configure($schema)
+            ->disabled(fn () => (bool) auth()->user()?->isDoctor());
     }
 
     public static function table(Table $table): Table

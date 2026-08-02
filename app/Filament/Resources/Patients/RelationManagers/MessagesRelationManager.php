@@ -14,6 +14,12 @@ class MessagesRelationManager extends RelationManager
 
     protected static ?string $title = 'Poruke';
 
+    /** Komunikacija sa pacijentom je posao recepcije — doktor je ne vidi. */
+    public static function canViewForRecord(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): bool
+    {
+        return ! auth()->user()?->isDoctor();
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema->components([]);
