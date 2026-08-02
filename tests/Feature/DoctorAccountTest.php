@@ -53,9 +53,17 @@ class DoctorAccountTest extends TestCase
     {
         $this->actingAs($this->doctorUser);
 
+        // Garantovano "tuđ" pacijent — bez ijedne veze sa ovim doktorom.
+        $tudji = \App\Models\Patient::create([
+            'first_name' => 'Test',
+            'last_name' => 'Nepovezani',
+            'phone' => '+381600000001',
+        ]);
+
         $visiblePatients = \App\Filament\Resources\Patients\PatientResource::getEloquentQuery()->get();
         $this->assertNotEmpty($visiblePatients);
         $this->assertLessThan(\App\Models\Patient::count(), $visiblePatients->count());
+        $this->assertFalse($visiblePatients->contains('id', $tudji->id));
 
         // Svaki vidljivi pacijent ima vezu sa ovim doktorom.
         $doctorId = $this->doctorUser->doctor_id;
@@ -70,8 +78,7 @@ class DoctorAccountTest extends TestCase
         $this->get('/admin/patients/' . $visiblePatients->first()->id . '/edit')->assertOk();
 
         // Tuđeg pacijenta ne može.
-        $other = \App\Models\Patient::whereNotIn('id', $visiblePatients->pluck('id'))->firstOrFail();
-        $this->get('/admin/patients/' . $other->id . '/edit')->assertNotFound();
+        $this->get('/admin/patients/' . $tudji->id . '/edit')->assertNotFound();
     }
 
     public function test_doktor_u_globalnim_listama_vidi_samo_svoje_unose(): void
@@ -137,14 +144,14 @@ class DoctorAccountTest extends TestCase
         $appointments = \App\Filament\Resources\Appointments\AppointmentResource::getGlobalSearchResults($patient->last_name);
         $this->assertNotEmpty($appointments);
 
-        // Doktor: pretraga vraća samo pacijente koje je lečio.
-        $this->actingAs($this->doctorUser);
-        $doctorId = $this->doctorUser->doctor_id;
+        // Doktor: pretraga ne sme vratiti pacijenta bez veze sa njim.
+        $tudji = \App\Models\Patient::create([
+            'first_name' => 'Tuđa',
+            'last_name' => 'Pretragić',
+            'phone' => '+381600000002',
+        ]);
 
-        $tudji = \App\Models\Patient::whereDoesntHave('appointments', fn ($q) => $q->where('doctor_id', $doctorId))
-            ->whereDoesntHave('kartonEntries', fn ($q) => $q->where('doctor_id', $doctorId))
-            ->whereDoesntHave('nalazi', fn ($q) => $q->where('doctor_id', $doctorId))
-            ->firstOrFail();
+        $this->actingAs($this->doctorUser);
 
         $results = \App\Filament\Resources\Patients\PatientResource::getGlobalSearchResults($tudji->last_name);
         $this->assertFalse(

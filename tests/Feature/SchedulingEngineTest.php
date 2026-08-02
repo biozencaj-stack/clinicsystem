@@ -180,7 +180,11 @@ class SchedulingEngineTest extends TestCase
 
         $slots = $this->availability->slots($urolog, $pregled, $overrideSaturday);
         $this->assertNotEmpty($slots);
-        $this->assertSame('10:00', $slots[0]->format('H:i'));
+        // Svi slotovi su unutar perioda posebnog dana (10:00-14:00).
+        foreach ($slots as $slot) {
+            $this->assertGreaterThanOrEqual('10:00', $slot->format('H:i'));
+            $this->assertLessThan('14:00', $slot->format('H:i'));
+        }
 
         $this->assertEmpty($this->availability->slots($urolog, $pregled, $regularSaturday));
     }
