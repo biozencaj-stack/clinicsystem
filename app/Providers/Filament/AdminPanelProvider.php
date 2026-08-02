@@ -26,6 +26,10 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->profile()
+            ->multiFactorAuthentication([
+                \Filament\Auth\MultiFactor\App\AppAuthentication::make()->recoverable(),
+            ])
             ->brandName('Klinika · Interni sistem')
             ->sidebarWidth('14rem')
             ->sidebarCollapsibleOnDesktop()

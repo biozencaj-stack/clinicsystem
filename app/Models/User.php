@@ -13,12 +13,43 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 #[Fillable(['name', 'email', 'password', 'doctor_id'])]
-#[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable implements FilamentUser
+#[Hidden(['password', 'remember_token', 'app_authentication_secret', 'app_authentication_recovery_codes'])]
+class User extends Authenticatable implements FilamentUser, \Filament\Auth\MultiFactor\App\Contracts\HasAppAuthentication, \Filament\Auth\MultiFactor\App\Contracts\HasAppAuthenticationRecovery
 {
     public function canAccessPanel(Panel $panel): bool
     {
         return true;
+    }
+
+    /* ——— Dvofaktorska prijava (aplikacija-autentifikator) ——— */
+
+    public function getAppAuthenticationSecret(): ?string
+    {
+        return $this->app_authentication_secret ? decrypt($this->app_authentication_secret) : null;
+    }
+
+    public function saveAppAuthenticationSecret(?string $secret): void
+    {
+        $this->forceFill(['app_authentication_secret' => $secret ? encrypt($secret) : null])->save();
+    }
+
+    public function getAppAuthenticationHolderName(): string
+    {
+        return $this->email;
+    }
+
+    public function getAppAuthenticationRecoveryCodes(): ?array
+    {
+        return $this->app_authentication_recovery_codes
+            ? json_decode(decrypt($this->app_authentication_recovery_codes), true)
+            : null;
+    }
+
+    public function saveAppAuthenticationRecoveryCodes(?array $codes): void
+    {
+        $this->forceFill([
+            'app_authentication_recovery_codes' => $codes ? encrypt(json_encode($codes)) : null,
+        ])->save();
     }
 
     public function doctor(): \Illuminate\Database\Eloquent\Relations\BelongsTo
