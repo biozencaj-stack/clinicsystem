@@ -46,6 +46,10 @@ class AppointmentsTable
                     ->toggleable(),
             ])
             ->filters([
+                \Filament\Tables\Filters\Filter::make('predstojeci')
+                    ->label('Samo predstojeći')
+                    ->default()
+                    ->query(fn ($query) => $query->whereDate('starts_at', '>=', today())),
                 SelectFilter::make('status')
                     ->label('Status')
                     ->options(Appointment::STATUSES),
@@ -91,6 +95,6 @@ class AppointmentsTable
                     }),
                 EditAction::make()->label('Izmeni'),
             ])
-            ->defaultSort('starts_at', 'desc');
+            ->defaultSort('starts_at', 'asc');
     }
 }
